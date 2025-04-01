@@ -1,89 +1,106 @@
-import requests
-from app.models import Orden, Usuarios
-from app.config import db
+import logging
+from ..models import Orden, Usuario  # Corrected import to use the correct class name and relative import
+from app.extensions import db  # Import db from extensions.py
 
 class PaymentService:
 
     def __init__(self):
-        # Aquí podrías agregar la clave de la API o configuraciones para integrar un sistema de pago real
-        self.payment_gateway_url = "https://api.paymentgateway.com"  # Ejemplo de URL de la pasarela de pago
+        # Use an environment variable for the payment gateway URL
+        self.payment_gateway_url = "https://api.paymentgateway.com"  # Replace with a real URL or environment variable
 
-    # Método para procesar un pago
+    # Process a payment
     def process_payment(self, order_id, payment_method, payment_details):
         """
-        Procesar el pago de una orden.
-        :param order_id: ID de la orden.
-        :param payment_method: Método de pago seleccionado (ejemplo: 'credit_card', 'paypal', etc.)
-        :param payment_details: Detalles del pago (ejemplo: número de tarjeta, token de pago, etc.)
-        :return: Diccionario con el resultado del pago
+        Process the payment for an order.
+        :param order_id: ID of the order.
+        :param payment_method: Selected payment method (e.g., 'credit_card', 'paypal').
+        :param payment_details: Payment details (e.g., card number, token).
+        :return: Dictionary with the payment result.
         """
-        order = Orden.query.get(order_id)
-        if not order:
-            raise ValueError("Pedido no encontrado.")
+        try:
+            # Retrieve the order
+            order = Orden.query.get(order_id)
+            if not order:
+                raise ValueError("Order not found.")
 
-        # Validar que el pedido esté pendiente de pago
-        if order.Estado != 'Pendiente':
-            raise ValueError("Este pedido no está en estado pendiente.")
+            # Validate that the order is pending payment
+            if order.estado != 'Pendiente':  # Updated to match the field name in the Orden model
+                raise ValueError("This order is not in a pending state.")
 
-        # Simulación de un pago (reemplazar con integración real)
-        payment_response = self._mock_payment_processing(payment_method, payment_details, order.Precio_Total)
+            # Simulate payment processing (replace with real integration)
+            payment_response = self._mock_payment_processing(payment_method, payment_details, order.precio_total)
 
-        if payment_response.get('status') == 'success':
-            # Si el pago fue exitoso, actualizar el estado del pedido a "Pagado"
-            order.Estado = 'Pagado'
-            db.session.commit()
+            if payment_response.get('status') == 'success':
+                # Update the order status to "Paid"
+                order.estado = 'Pagado'  # Updated to match the field name in the Orden model
+                db.session.commit()
 
-            # Actualizar los puntos del usuario después del pago (si es necesario)
-            user = Usuarios.query.get(order.Id_Usuario)
-            self.update_user_points(user, order.Puntos_Total)
+                # Update user points after successful payment
+                user = Usuario.query.get(order.id_usuario)  # Updated to use the correct class name and field name
+                self.update_user_points(user, order.puntos)  # Updated to match the field name in the Orden model
 
-            return {"message": "Pago procesado exitosamente", "order_id": order_id, "status": "Pagado"}
-        else:
-            raise ValueError("El pago no fue exitoso. Intenta nuevamente.")
+                return {"message": "Payment processed successfully", "order_id": order_id, "status": "Paid"}
+            else:
+                raise ValueError("Payment was not successful. Please try again.")
+        except Exception as e:
+            logging.error(f"Error processing payment for order {order_id}: {e}")
+            raise ValueError("An error occurred while processing the payment.")
 
-    # Método simulado de procesamiento de pagos (reemplazar con integración real)
+    # Mock payment processing (replace with real integration)
     def _mock_payment_processing(self, payment_method, payment_details, amount):
         """
-        Simulación de procesamiento de un pago. Reemplaza esto con una integración real.
-        :param payment_method: Método de pago (Ejemplo: 'credit_card', 'paypal')
-        :param payment_details: Detalles del pago (Ejemplo: número de tarjeta, token de pago)
-        :param amount: Monto a pagar
-        :return: Diccionario con el resultado del pago
+        Simulate payment processing. Replace this with real integration.
+        :param payment_method: Payment method (e.g., 'credit_card', 'paypal').
+        :param payment_details: Payment details (e.g., card number, token).
+        :param amount: Amount to be paid.
+        :return: Dictionary with the payment result.
         """
-        # Aquí iría la lógica de integración real con la API de pago (Stripe, PayPal, etc.)
-        # Simulamos una respuesta exitosa
+        # Simulate a successful payment response
         return {
             "status": "success",
-            "transaction_id": "1234567890",  # Este sería el ID de transacción de la pasarela de pago
+            "transaction_id": "1234567890",  # Example transaction ID
             "amount": amount
         }
 
-    # Método para actualizar los puntos del usuario
+    # Update user points after a successful payment
     def update_user_points(self, user, points):
         """
-        Actualizar los puntos del usuario después de una compra exitosa.
-        :param user: Usuario al que se le actualizarán los puntos.
-        :param points: Puntos a añadir o restar.
+        Update the user's points after a successful purchase.
+        :param user: User whose points will be updated.
+        :param points: Points to add or subtract.
         """
-        user.Puntos += points
-        db.session.commit()
+        try:
+            user.puntos += points  # Updated to match the field name in the Usuario model
+            db.session.commit()
+        except Exception as e:
+            logging.error(f"Error updating user points for user {user.id_usuario}: {e}")  # Updated field name
+            raise ValueError("An error occurred while updating user points.")
 
-    # Método para verificar el estado de un pago (en una implementación real, consultaríamos la pasarela de pago)
+    # Verify the status of a payment (replace with real payment gateway query)
     def verify_payment_status(self, transaction_id):
         """
-        Verificar el estado de un pago mediante la consulta de la pasarela de pago.
-        :param transaction_id: ID de transacción de la pasarela de pago.
-        :return: Diccionario con el estado del pago.
+        Verify the status of a payment by querying the payment gateway.
+        :param transaction_id: Transaction ID from the payment gateway.
+        :return: Dictionary with the payment status.
         """
-        # Simulación de la consulta del estado del pago
-        payment_status = self._mock_payment_status(transaction_id)
-        return payment_status
+        try:
+            # Simulate querying the payment gateway
+            payment_status = self._mock_payment_status(transaction_id)
+            return payment_status
+        except Exception as e:
+            logging.error(f"Error verifying payment status for transaction {transaction_id}: {e}")
+            raise ValueError("An error occurred while verifying the payment status.")
 
-    # Método simulado de estado de pago (reemplazar con lógica real de consulta)
+    # Mock payment status query (replace with real logic)
     def _mock_payment_status(self, transaction_id):
         """
-        Simulación de la consulta del estado del pago.
-        :param transaction_id: ID de la transacción a verificar.
-        :return: Diccionario con el estado del pago.
+        Simulate querying the payment status.
+        :param transaction_id: Transaction ID to verify.
+        :return: Dictionary with the payment status.
         """
-        return {"status": "success", "transaction_id": transaction_id, "payment_date": "2025-03-24"}
+        # Simulate a successful payment status response
+        return {
+            "status": "success",
+            "transaction_id": transaction_id,
+            "payment_date": "2025-03-24"
+        }

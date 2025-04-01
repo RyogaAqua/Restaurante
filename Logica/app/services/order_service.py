@@ -1,5 +1,6 @@
-from app.models import Orden, Restaurante, Menu_Objetos, Usuarios, Puntos
-from app.config import db
+import logging
+from ..models import Orden, Restaurante, MenuObjetos, Usuario  # Updated to use the correct class name
+from app.extensions import db  # Import db from extensions.py
 from app.services.reward_service import RewardService
 
 class OrderService:
@@ -7,115 +8,144 @@ class OrderService:
     def __init__(self):
         self.reward_service = RewardService()
 
-    # Método para crear un nuevo pedido
+    # Create a new order
     def create_order(self, user_id, restaurant_id, items, address):
-        # Obtener el restaurante y el usuario
-        user = Usuarios.query.get(user_id)
-        restaurant = Restaurante.query.get(restaurant_id)
+        try:
+            # Validate user and restaurant
+            user = self.get_user(user_id)
+            restaurant = self.get_restaurant(restaurant_id)
 
-        if not user or not restaurant:
-            raise ValueError("Usuario o restaurante no encontrado.")
+            # Validate menu items and calculate totals
+            menu_items, total_price, total_calories = self.validate_menu_items(items)
 
-        # Verificar que los elementos del menú existen
+            # Calculate points to be earned
+            total_points = self.calculate_points(total_price)
+
+            # Create the order
+            new_order = Orden(
+                id_usuario=user_id,
+                id_restaurante=restaurant_id,
+                puntos=total_points,
+                precio_total=total_price,
+                direccion=address,
+                estado="Pending"
+            )
+
+            # Save the order to the database
+            db.session.add(new_order)
+            db.session.commit()
+
+            # Update user points
+            self.reward_service.update_user_points(user, total_points)
+
+            return {
+                "message": "Order created successfully",
+                "order_id": new_order.id_orden,
+                "total_price": total_price,
+                "total_points": total_points,
+                "total_calories": total_calories
+            }
+        except Exception as e:
+            logging.error(f"Error creating order: {e}")
+            raise ValueError("An error occurred while creating the order.")
+
+    # Validate menu items and calculate totals
+    def validate_menu_items(self, items):
         menu_items = []
         total_price = 0
         total_calories = 0
 
         for item in items:
-            menu_item = Menu_Objetos.query.filter_by(UPC_Objeto=item['UPC']).first()
+            menu_item = MenuObjetos.query.filter_by(upc_objeto=item['UPC']).first()
             if not menu_item:
-                raise ValueError(f"El elemento con UPC {item['UPC']} no existe.")
+                raise ValueError(f"Menu item with UPC {item['UPC']} does not exist.")
             
             menu_items.append(menu_item)
-            total_price += menu_item.Precio
-            total_calories += menu_item.Calorias
+            total_price += menu_item.precio
+            total_calories += menu_item.calorias
 
-        # Calcular los puntos a ganar por el pedido
-        total_points = self.calculate_points(total_price)
+        return menu_items, total_price, total_calories
 
-        # Crear el pedido
-        new_order = Orden(
-            Id_Usuario=user_id,
-            Restaurante=restaurant_id,
-            Puntos=total_points,
-            Precio_Total=total_price,
-            Puntos_Total=total_points,
-            Address=address
-        )
-
-        # Agregar el pedido a la base de datos
-        db.session.add(new_order)
-        db.session.commit()
-
-        # Actualizar los puntos del usuario
-        self.reward_service.update_user_points(user, total_points)
-
-        return {
-            "message": "Pedido creado con éxito",
-            "order_id": new_order.Id_Transaccion,
-            "total_price": total_price,
-            "total_points": total_points,
-            "total_calories": total_calories
-        }
-
-    # Método para calcular puntos basados en el precio del pedido
+    # Calculate points based on total price
     def calculate_points(self, total_price):
-        # Aquí puedes implementar la lógica para calcular los puntos.
-        # Ejemplo: 1 punto por cada 10 unidades de precio.
-        return total_price // 10  # Se pueden modificar las reglas de puntos según sea necesario.
+        # Example: 1 point for every 10 units of price
+        return total_price // 10
 
-    # Método para obtener las órdenes de un usuario
+    # Get orders for a user
     def get_orders_for_user(self, user_id):
-        orders = Orden.query.filter_by(Id_Usuario=user_id).all()
-        if not orders:
-            return {"message": "No hay pedidos para este usuario."}
+        try:
+            orders = Orden.query.filter_by(id_usuario=user_id).all()
+            if not orders:
+                return {"message": "No orders found for this user."}
 
-        orders_data = []
-        for order in orders:
-            restaurant = Restaurante.query.get(order.Restaurante)
-            order_data = {
-                "order_id": order.Id_Transaccion,
-                "restaurant_name": restaurant.Nombre,
-                "total_price": order.Precio_Total,
-                "total_points": order.Puntos_Total,
-                "address": order.Address,
-                "order_status": order.Estado if hasattr(order, 'Estado') else "Pendiente",
-            }
-            orders_data.append(order_data)
+            orders_data = []
+            for order in orders:
+                restaurant = self.get_restaurant(order.id_restaurante)
+                order_data = {
+                    "order_id": order.id_orden,
+                    "restaurant_name": restaurant.nombre,
+                    "total_price": order.precio_total,
+                    "total_points": order.puntos,
+                    "address": order.direccion,
+                    "order_status": order.estado,
+                }
+                orders_data.append(order_data)
 
-        return orders_data
+            return orders_data
+        except Exception as e:
+            logging.error(f"Error retrieving orders for user {user_id}: {e}")
+            raise ValueError("An error occurred while retrieving orders.")
 
-    # Método para cancelar un pedido
+    # Cancel an order
     def cancel_order(self, order_id):
-        order = Orden.query.get(order_id)
-        if not order:
-            raise ValueError("Pedido no encontrado.")
+        try:
+            order = Orden.query.get(order_id)
+            if not order:
+                raise ValueError("Order not found.")
 
-        # Actualizar el estado del pedido (si se desea manejar estados)
-        order.Estado = 'Cancelado'
+            # Update order status
+            order.estado = 'Cancelled'
 
-        # Revertir puntos si ya se han asignado
-        user = Usuarios.query.get(order.Id_Usuario)
-        self.reward_service.update_user_points(user, -order.Puntos_Total)
+            # Revert user points
+            user = self.get_user(order.id_usuario)
+            self.reward_service.update_user_points(user, -order.puntos)
 
-        db.session.commit()
+            db.session.commit()
 
-        return {"message": "Pedido cancelado con éxito"}
+            return {"message": "Order cancelled successfully"}
+        except Exception as e:
+            logging.error(f"Error cancelling order {order_id}: {e}")
+            raise ValueError("An error occurred while cancelling the order.")
 
-    # Método para procesar un pago (se podría conectar con un servicio de pago real)
+    # Process a payment
     def process_payment(self, order_id, payment_method):
-        order = Orden.query.get(order_id)
-        if not order:
-            raise ValueError("Pedido no encontrado.")
+        try:
+            order = Orden.query.get(order_id)
+            if not order:
+                raise ValueError("Order not found.")
 
-        # Aquí deberías agregar la lógica para procesar el pago con el método de pago proporcionado
-        # Esto podría involucrar una integración con un API de pago (por ejemplo, Stripe o PayPal)
-        
-        # Simulación de un pago exitoso
-        payment_status = "Pagado"
+            # Simulate payment processing
+            payment_status = "Paid"
 
-        # Actualizar el estado del pedido
-        order.Estado = payment_status
-        db.session.commit()
+            # Update order status
+            order.estado = payment_status
+            db.session.commit()
 
-        return {"message": f"Pago procesado exitosamente. Estado del pedido: {payment_status}"}
+            return {"message": f"Payment processed successfully. Order status: {payment_status}"}
+        except Exception as e:
+            logging.error(f"Error processing payment for order {order_id}: {e}")
+            raise ValueError("An error occurred while processing the payment.")
+
+    # Helper method to get a user
+    def get_user(self, user_id):
+        user = Usuario.query.get(user_id)  # Updated to use the correct class name
+        if not user:
+            raise ValueError("User not found.")
+        return user
+
+    # Helper method to get a restaurant
+    def get_restaurant(self, restaurant_id):
+        restaurant = Restaurante.query.get(restaurant_id)
+        if not restaurant:
+            raise ValueError("Restaurant not found.")
+        return restaurant
