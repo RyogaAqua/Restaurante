@@ -1,34 +1,49 @@
-from ..models import MenuObjetos  # Corrected to use a relative import
-from app.extensions import db  # Corrected to import db from extensions.py
+from ..models import MenuObjetos  # Importación relativa para el modelo MenuObjetos
+from app.extensions import db  # Importa db desde extensions.py
+
+"""
+Este módulo contiene funciones para manejar la lógica relacionada con el menú,
+incluyendo la recuperación, adición, actualización y eliminación de elementos del menú.
+"""
 
 def get_menu():
     """
-    Retrieve all menu items from the database.
-    :return: List of menu items.
+    Recupera todos los elementos del menú desde la base de datos.
+
+    Returns:
+        list: Lista de elementos del menú en formato de diccionario.
     """
     try:
         menu_items = MenuObjetos.query.all()
         return [item.to_dict() for item in menu_items]
     except Exception as e:
-        raise ValueError(f"Error retrieving menu: {e}")
+        raise ValueError(f"Error al recuperar el menú: {e}")
 
 def get_menu_by_category(category):
     """
-    Retrieve menu items filtered by category.
-    :param category: The category to filter by.
-    :return: List of menu items in the specified category.
+    Recupera los elementos del menú filtrados por categoría.
+
+    Args:
+        category (str): La categoría por la cual filtrar los elementos del menú.
+
+    Returns:
+        list: Lista de elementos del menú en la categoría especificada.
     """
     try:
         menu_items = MenuObjetos.query.filter_by(categoria=category).all()
         return [item.to_dict() for item in menu_items]
     except Exception as e:
-        raise ValueError(f"Error retrieving menu by category '{category}': {e}")
+        raise ValueError(f"Error al recuperar el menú por categoría '{category}': {e}")
 
 def add_menu_item(data):
     """
-    Add a new menu item to the database.
-    :param data: Dictionary containing menu item details.
-    :return: The newly added menu item.
+    Agrega un nuevo elemento al menú en la base de datos.
+
+    Args:
+        data (dict): Diccionario que contiene los detalles del nuevo elemento del menú.
+
+    Returns:
+        dict: El elemento del menú recién agregado en formato de diccionario.
     """
     try:
         new_item = MenuObjetos(
@@ -43,19 +58,23 @@ def add_menu_item(data):
         return new_item.to_dict()
     except Exception as e:
         db.session.rollback()
-        raise ValueError(f"Error adding menu item: {e}")
+        raise ValueError(f"Error al agregar un elemento al menú: {e}")
 
 def update_menu_item(upc_objeto, data):
     """
-    Update an existing menu item in the database.
-    :param upc_objeto: The UPC of the menu item to update.
-    :param data: Dictionary containing updated menu item details.
-    :return: The updated menu item.
+    Actualiza un elemento existente del menú en la base de datos.
+
+    Args:
+        upc_objeto (str): El UPC del elemento del menú a actualizar.
+        data (dict): Diccionario que contiene los detalles actualizados del elemento del menú.
+
+    Returns:
+        dict: El elemento del menú actualizado en formato de diccionario.
     """
     try:
         item = MenuObjetos.query.get(upc_objeto)
         if not item:
-            raise ValueError("Menu item not found.")
+            raise ValueError("Elemento del menú no encontrado.")
 
         item.nombre_objeto = data.get('nombre_objeto', item.nombre_objeto)
         item.precio = data.get('precio', item.precio)
@@ -66,22 +85,26 @@ def update_menu_item(upc_objeto, data):
         return item.to_dict()
     except Exception as e:
         db.session.rollback()
-        raise ValueError(f"Error updating menu item: {e}")
+        raise ValueError(f"Error al actualizar un elemento del menú: {e}")
 
 def delete_menu_item(upc_objeto):
     """
-    Delete a menu item from the database.
-    :param upc_objeto: The UPC of the menu item to delete.
-    :return: Success message.
+    Elimina un elemento del menú de la base de datos.
+
+    Args:
+        upc_objeto (str): El UPC del elemento del menú a eliminar.
+
+    Returns:
+        dict: Mensaje de éxito indicando que el elemento fue eliminado.
     """
     try:
         item = MenuObjetos.query.get(upc_objeto)
         if not item:
-            raise ValueError("Menu item not found.")
+            raise ValueError("Elemento del menú no encontrado.")
 
         db.session.delete(item)
         db.session.commit()
-        return {"message": f"Menu item with UPC {upc_objeto} deleted successfully."}
+        return {"message": f"Elemento del menú con UPC {upc_objeto} eliminado exitosamente."}
     except Exception as e:
         db.session.rollback()
-        raise ValueError(f"Error deleting menu item: {e}")
+        raise ValueError(f"Error al eliminar un elemento del menú: {e}")

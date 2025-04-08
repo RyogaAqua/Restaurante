@@ -1,104 +1,137 @@
 import logging
-from ..models import Orden, Usuario  # Corrected import to use the correct class name and relative import
-from app.extensions import db  # Import db from extensions.py
+from ..models import Orden, Usuario  # Importación correcta de las clases
+from app.extensions import db  # Importa db desde extensions.py
+
+"""
+Este módulo contiene la lógica para manejar los pagos, incluyendo el procesamiento,
+la verificación del estado de los pagos y la actualización de puntos de usuario.
+"""
 
 class PaymentService:
+    """
+    Servicio para manejar la lógica relacionada con los pagos.
+    """
 
     def __init__(self):
-        # Use an environment variable for the payment gateway URL
-        self.payment_gateway_url = "https://api.paymentgateway.com"  # Replace with a real URL or environment variable
+        """
+        Inicializa el servicio de pagos y configura la URL del gateway de pagos.
+        """
+        # Usar una variable de entorno para la URL del gateway de pagos
+        self.payment_gateway_url = "https://api.paymentgateway.com"  # Reemplazar con una URL real o variable de entorno
 
-    # Process a payment
     def process_payment(self, order_id, payment_method, payment_details):
         """
-        Process the payment for an order.
-        :param order_id: ID of the order.
-        :param payment_method: Selected payment method (e.g., 'credit_card', 'paypal').
-        :param payment_details: Payment details (e.g., card number, token).
-        :return: Dictionary with the payment result.
+        Procesa el pago de un pedido.
+
+        Args:
+            order_id (int): ID del pedido.
+            payment_method (str): Método de pago seleccionado (por ejemplo, 'credit_card', 'paypal').
+            payment_details (dict): Detalles del pago (por ejemplo, número de tarjeta, token).
+
+        Returns:
+            dict: Resultado del pago, incluyendo el estado y el ID del pedido.
+
+        Raises:
+            ValueError: Si ocurre un error durante el procesamiento del pago.
         """
         try:
-            # Retrieve the order
+            # Recuperar el pedido
             order = Orden.query.get(order_id)
             if not order:
-                raise ValueError("Order not found.")
+                raise ValueError("Pedido no encontrado.")
 
-            # Validate that the order is pending payment
-            if order.estado != 'Pendiente':  # Updated to match the field name in the Orden model
-                raise ValueError("This order is not in a pending state.")
+            # Validar que el pedido esté pendiente de pago
+            if order.estado != 'Pendiente':  # Actualizado para coincidir con el campo en el modelo Orden
+                raise ValueError("Este pedido no está en estado pendiente.")
 
-            # Simulate payment processing (replace with real integration)
+            # Simular el procesamiento del pago (reemplazar con integración real)
             payment_response = self._mock_payment_processing(payment_method, payment_details, order.precio_total)
 
             if payment_response.get('status') == 'success':
-                # Update the order status to "Paid"
-                order.estado = 'Pagado'  # Updated to match the field name in the Orden model
+                # Actualizar el estado del pedido a "Pagado"
+                order.estado = 'Pagado'  # Actualizado para coincidir con el campo en el modelo Orden
                 db.session.commit()
 
-                # Update user points after successful payment
-                user = Usuario.query.get(order.id_usuario)  # Updated to use the correct class name and field name
-                self.update_user_points(user, order.puntos)  # Updated to match the field name in the Orden model
+                # Actualizar los puntos del usuario después del pago exitoso
+                user = Usuario.query.get(order.id_usuario)  # Actualizado para usar el nombre correcto de la clase y campo
+                self.update_user_points(user, order.puntos)  # Actualizado para coincidir con el campo en el modelo Orden
 
-                return {"message": "Payment processed successfully", "order_id": order_id, "status": "Paid"}
+                return {"message": "Pago procesado exitosamente", "order_id": order_id, "status": "Paid"}
             else:
-                raise ValueError("Payment was not successful. Please try again.")
+                raise ValueError("El pago no fue exitoso. Por favor, inténtelo de nuevo.")
         except Exception as e:
-            logging.error(f"Error processing payment for order {order_id}: {e}")
-            raise ValueError("An error occurred while processing the payment.")
+            logging.error(f"Error al procesar el pago para el pedido {order_id}: {e}")
+            raise ValueError("Ocurrió un error al procesar el pago.")
 
-    # Mock payment processing (replace with real integration)
     def _mock_payment_processing(self, payment_method, payment_details, amount):
         """
-        Simulate payment processing. Replace this with real integration.
-        :param payment_method: Payment method (e.g., 'credit_card', 'paypal').
-        :param payment_details: Payment details (e.g., card number, token).
-        :param amount: Amount to be paid.
-        :return: Dictionary with the payment result.
+        Simula el procesamiento del pago. Reemplazar con integración real.
+
+        Args:
+            payment_method (str): Método de pago (por ejemplo, 'credit_card', 'paypal').
+            payment_details (dict): Detalles del pago (por ejemplo, número de tarjeta, token).
+            amount (float): Monto a pagar.
+
+        Returns:
+            dict: Resultado simulado del pago.
         """
-        # Simulate a successful payment response
+        # Simular una respuesta de pago exitoso
         return {
             "status": "success",
-            "transaction_id": "1234567890",  # Example transaction ID
+            "transaction_id": "1234567890",  # Ejemplo de ID de transacción
             "amount": amount
         }
 
-    # Update user points after a successful payment
     def update_user_points(self, user, points):
         """
-        Update the user's points after a successful purchase.
-        :param user: User whose points will be updated.
-        :param points: Points to add or subtract.
+        Actualiza los puntos del usuario después de una compra exitosa.
+
+        Args:
+            user (Usuario): Usuario cuyos puntos serán actualizados.
+            points (int): Puntos a agregar o restar.
+
+        Raises:
+            ValueError: Si ocurre un error al actualizar los puntos del usuario.
         """
         try:
-            user.puntos += points  # Updated to match the field name in the Usuario model
+            user.puntos += points  # Actualizado para coincidir con el campo en el modelo Usuario
             db.session.commit()
         except Exception as e:
-            logging.error(f"Error updating user points for user {user.id_usuario}: {e}")  # Updated field name
-            raise ValueError("An error occurred while updating user points.")
+            logging.error(f"Error al actualizar los puntos del usuario {user.id_usuario}: {e}")  # Campo actualizado
+            raise ValueError("Ocurrió un error al actualizar los puntos del usuario.")
 
-    # Verify the status of a payment (replace with real payment gateway query)
     def verify_payment_status(self, transaction_id):
         """
-        Verify the status of a payment by querying the payment gateway.
-        :param transaction_id: Transaction ID from the payment gateway.
-        :return: Dictionary with the payment status.
+        Verifica el estado de un pago consultando el gateway de pagos.
+
+        Args:
+            transaction_id (str): ID de la transacción del gateway de pagos.
+
+        Returns:
+            dict: Estado del pago.
+
+        Raises:
+            ValueError: Si ocurre un error al verificar el estado del pago.
         """
         try:
-            # Simulate querying the payment gateway
+            # Simular la consulta al gateway de pagos
             payment_status = self._mock_payment_status(transaction_id)
             return payment_status
         except Exception as e:
-            logging.error(f"Error verifying payment status for transaction {transaction_id}: {e}")
-            raise ValueError("An error occurred while verifying the payment status.")
+            logging.error(f"Error al verificar el estado del pago para la transacción {transaction_id}: {e}")
+            raise ValueError("Ocurrió un error al verificar el estado del pago.")
 
-    # Mock payment status query (replace with real logic)
     def _mock_payment_status(self, transaction_id):
         """
-        Simulate querying the payment status.
-        :param transaction_id: Transaction ID to verify.
-        :return: Dictionary with the payment status.
+        Simula la consulta del estado del pago.
+
+        Args:
+            transaction_id (str): ID de la transacción a verificar.
+
+        Returns:
+            dict: Estado simulado del pago.
         """
-        # Simulate a successful payment status response
+        # Simular una respuesta de estado de pago exitoso
         return {
             "status": "success",
             "transaction_id": transaction_id,

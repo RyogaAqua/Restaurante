@@ -1,31 +1,50 @@
 import logging
-from ..models import Usuario  # Corrected import to use the correct class name
-from app.extensions import db  # Import db from extensions.py
+from ..models import Usuario  # Importación correcta de la clase Usuario
+from app.extensions import db  # Importa db desde extensions.py
+
+"""
+Este módulo contiene la lógica para manejar el sistema de recompensas,
+incluyendo la obtención de recompensas disponibles, el canje de recompensas
+y la actualización de puntos de usuario.
+"""
 
 class RewardService:
+    """
+    Servicio para manejar la lógica relacionada con el sistema de recompensas.
+    """
 
     def __init__(self):
-        # Define rewards (consider moving this to a database for scalability)
+        """
+        Inicializa el servicio de recompensas y define las recompensas disponibles.
+        """
+        # Definir recompensas (considerar mover esto a una base de datos para mayor escalabilidad)
         self.rewards = {
-            "free_burger": 100,  # Requires 100 points for a free burger
-            "free_fries": 50,    # Requires 50 points for free fries
+            "free_burger": 100,  # Requiere 100 puntos para una hamburguesa gratis
+            "free_fries": 50,    # Requiere 50 puntos para papas fritas gratis
         }
 
     def get_available_rewards(self, user_id):
         """
-        Retrieve available rewards for a user based on their points.
-        :param user_id: ID of the user.
-        :return: List of available rewards.
+        Recupera las recompensas disponibles para un usuario basado en sus puntos.
+
+        Args:
+            user_id (int): ID del usuario.
+
+        Returns:
+            list: Lista de recompensas disponibles con los puntos requeridos.
+
+        Raises:
+            ValueError: Si ocurre un error al recuperar las recompensas.
         """
         try:
-            user = Usuario.query.get(user_id)  # Updated to use the correct class name
+            user = Usuario.query.get(user_id)  # Recupera el usuario por su ID
             if not user:
-                raise ValueError("User not found.")
+                raise ValueError("Usuario no encontrado.")
 
-            user_points = user.puntos  # Updated to match the field name in the Usuario model
+            user_points = user.puntos  # Obtiene los puntos actuales del usuario
             available_rewards = []
 
-            # Check which rewards are available based on user points
+            # Verifica qué recompensas están disponibles según los puntos del usuario
             for reward, required_points in self.rewards.items():
                 if user_points >= required_points:
                     available_rewards.append({
@@ -35,74 +54,95 @@ class RewardService:
 
             return available_rewards
         except Exception as e:
-            logging.error(f"Error retrieving rewards for user {user_id}: {e}")
-            raise ValueError("An error occurred while retrieving rewards.")
+            logging.error(f"Error al recuperar recompensas para el usuario {user_id}: {e}")
+            raise ValueError("Ocurrió un error al recuperar las recompensas.")
 
     def redeem_reward(self, user_id, reward_name):
         """
-        Allow a user to redeem a reward using their points.
-        :param user_id: ID of the user.
-        :param reward_name: Name of the reward to redeem.
-        :return: Result of the reward redemption.
+        Permite a un usuario canjear una recompensa utilizando sus puntos.
+
+        Args:
+            user_id (int): ID del usuario.
+            reward_name (str): Nombre de la recompensa a canjear.
+
+        Returns:
+            dict: Resultado del canje de la recompensa.
+
+        Raises:
+            ValueError: Si ocurre un error durante el canje de la recompensa.
         """
         try:
-            user = Usuario.query.get(user_id)  # Updated to use the correct class name
+            user = Usuario.query.get(user_id)  # Recupera el usuario por su ID
             if not user:
-                raise ValueError("User not found.")
+                raise ValueError("Usuario no encontrado.")
 
-            user_points = user.puntos  # Updated to match the field name in the Usuario model
+            user_points = user.puntos  # Obtiene los puntos actuales del usuario
 
-            # Check if the reward exists
+            # Verifica si la recompensa existe
             if reward_name not in self.rewards:
-                raise ValueError("Invalid reward.")
+                raise ValueError("Recompensa inválida.")
 
             required_points = self.rewards[reward_name]
 
-            # Check if the user has enough points
+            # Verifica si el usuario tiene suficientes puntos
             if user_points < required_points:
-                raise ValueError("Insufficient points to redeem this reward.")
+                raise ValueError("Puntos insuficientes para canjear esta recompensa.")
 
-            # Deduct points and update the user's record
-            user.puntos -= required_points  # Updated to match the field name in the Usuario model
+            # Deduce los puntos y actualiza el registro del usuario
+            user.puntos -= required_points
             db.session.commit()
 
-            return {"message": f"Reward '{reward_name}' redeemed successfully."}
+            return {"message": f"Recompensa '{reward_name}' canjeada exitosamente."}
         except Exception as e:
-            logging.error(f"Error redeeming reward '{reward_name}' for user {user_id}: {e}")
-            raise ValueError("An error occurred while redeeming the reward.")
+            logging.error(f"Error al canjear la recompensa '{reward_name}' para el usuario {user_id}: {e}")
+            raise ValueError("Ocurrió un error al canjear la recompensa.")
 
     def get_user_points(self, user_id):
         """
-        Retrieve the current points of a user.
-        :param user_id: ID of the user.
-        :return: User's points.
+        Recupera los puntos actuales de un usuario.
+
+        Args:
+            user_id (int): ID del usuario.
+
+        Returns:
+            int: Puntos actuales del usuario.
+
+        Raises:
+            ValueError: Si ocurre un error al recuperar los puntos del usuario.
         """
         try:
-            user = Usuario.query.get(user_id)  # Updated to use the correct class name
+            user = Usuario.query.get(user_id)  # Recupera el usuario por su ID
             if not user:
-                raise ValueError("User not found.")
+                raise ValueError("Usuario no encontrado.")
             
-            return user.puntos  # Updated to match the field name in the Usuario model
+            return user.puntos
         except Exception as e:
-            logging.error(f"Error retrieving points for user {user_id}: {e}")
-            raise ValueError("An error occurred while retrieving user points.")
+            logging.error(f"Error al recuperar los puntos para el usuario {user_id}: {e}")
+            raise ValueError("Ocurrió un error al recuperar los puntos del usuario.")
 
     def update_user_points(self, user_id, points):
         """
-        Update a user's points (add or subtract).
-        :param user_id: ID of the user.
-        :param points: Points to add or subtract.
-        :return: Updated total points of the user.
+        Actualiza los puntos de un usuario (agregar o restar).
+
+        Args:
+            user_id (int): ID del usuario.
+            points (int): Puntos a agregar o restar.
+
+        Returns:
+            int: Total actualizado de puntos del usuario.
+
+        Raises:
+            ValueError: Si ocurre un error al actualizar los puntos del usuario.
         """
         try:
-            user = Usuario.query.get(user_id)  # Updated to use the correct class name
+            user = Usuario.query.get(user_id)  # Recupera el usuario por su ID
             if not user:
-                raise ValueError("User not found.")
+                raise ValueError("Usuario no encontrado.")
             
-            user.puntos += points  # Updated to match the field name in the Usuario model
+            user.puntos += points
             db.session.commit()
 
-            return user.puntos  # Updated to match the field name in the Usuario model
+            return user.puntos
         except Exception as e:
-            logging.error(f"Error updating points for user {user_id}: {e}")
-            raise ValueError("An error occurred while updating user points.")
+            logging.error(f"Error al actualizar los puntos para el usuario {user_id}: {e}")
+            raise ValueError("Ocurrió un error al actualizar los puntos del usuario.")

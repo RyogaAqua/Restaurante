@@ -1,4 +1,6 @@
-Flask==2.2.2
-Flask-SQLAlchemy==2.5.1
-Flask-JWT-Extended==4.4.4
-Flask-Migrate==3.1.0
+Flask==2.2.2               # Framework web ligero para construir aplicaciones web en Python
+Flask-SQLAlchemy==2.5.1    # Extensión para integrar SQLAlchemy con Flask para manejar bases de datos
+Flask-JWT-Extended==4.4.4  # Extensión para manejar autenticación basada en JSON Web Tokens (JWT)
+Flask-Migrate==3.1.0       # Extensión para manejar migraciones de bases de datos con Flask y SQLAlchemy
+python-dotenv==1.0.0       # Para manejar variables de entorno desde un archivo .env
+requests==2.31.0           # Biblioteca para realizar solicitudes HTTP, útil para integraciones con APIs externas
