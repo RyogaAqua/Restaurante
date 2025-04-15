@@ -1,5 +1,5 @@
 import logging
-from ..models import Orden, Restaurante, MenuObjetos, Usuario  # Importación correcta de las clases
+from ..models import Orden, Restaurante, MenuObjetos, Usuario, Address, OrdenItems  # Importación correcta de las clases
 from app.extensions import db  # Importa db desde extensions.py
 from app.services.reward_service import RewardService
 
@@ -19,7 +19,7 @@ class OrderService:
         """
         self.reward_service = RewardService()
 
-    def create_order(self, user_id, restaurant_id, items, address):
+    def create_order(self, user_id, restaurant_id, items, delivery_address):
         """
         Crea un nuevo pedido en la base de datos.
 
@@ -27,7 +27,7 @@ class OrderService:
             user_id (int): ID del usuario que realiza el pedido.
             restaurant_id (int): ID del restaurante donde se realiza el pedido.
             items (list): Lista de elementos del menú incluidos en el pedido.
-            address (str): Dirección de entrega del pedido.
+            delivery_address (dict): Dirección de entrega del pedido.
 
         Returns:
             dict: Detalles del pedido creado, incluyendo precio total, puntos y calorías.
@@ -44,33 +44,47 @@ class OrderService:
             menu_items, total_price, total_calories = self.validate_menu_items(items)
 
             # Calcular puntos a ganar
-            total_points = self.calculate_points(total_price)
+            total_points_earned = self.calculate_points(total_price)
+
+            # Crear o buscar la dirección de entrega
+            address = self.get_or_create_address(delivery_address)
 
             # Crear el pedido
             new_order = Orden(
                 id_usuario=user_id,
-                id_restaurante=restaurant_id,
-                puntos=total_points,
+                id_delivery_address=address.id_address,
                 precio_total=total_price,
-                direccion=address,
-                estado="Pending"
+                puntos_gastados=0,  # Inicialmente no se gastan puntos
+                puntos_ganados=total_points_earned
             )
-
-            # Guardar el pedido en la base de datos
             db.session.add(new_order)
+            db.session.flush()  # Asegura que el pedido tenga un ID antes de agregar los items
+
+            # Agregar los items al pedido
+            for item in menu_items:
+                order_item = OrdenItems(
+                    id_transaccion=new_order.id_transaccion,
+                    id_objeto=item['id_objeto'],
+                    quantity=item['quantity'],
+                    precio_unitario_congelado=item['precio']
+                )
+                db.session.add(order_item)
+
+            # Guardar el pedido y los items
             db.session.commit()
 
             # Actualizar los puntos del usuario
-            self.reward_service.update_user_points(user, total_points)
+            self.reward_service.update_user_points(user_id, total_points_earned)
 
             return {
                 "message": "Pedido creado exitosamente",
-                "order_id": new_order.id_orden,
+                "order_id": new_order.id_transaccion,
                 "total_price": total_price,
-                "total_points": total_points,
+                "total_points_earned": total_points_earned,
                 "total_calories": total_calories
             }
         except Exception as e:
+            db.session.rollback()
             logging.error(f"Error al crear el pedido: {e}")
             raise ValueError("Ocurrió un error al crear el pedido.")
 
@@ -92,13 +106,18 @@ class OrderService:
         total_calories = 0
 
         for item in items:
-            menu_item = MenuObjetos.query.filter_by(upc_objeto=item['UPC']).first()
+            menu_item = MenuObjetos.query.get(item['id_objeto'])
             if not menu_item:
-                raise ValueError(f"El elemento del menú con UPC {item['UPC']} no existe.")
+                raise ValueError(f"El elemento del menú con ID {item['id_objeto']} no existe.")
             
-            menu_items.append(menu_item)
-            total_price += menu_item.precio
-            total_calories += menu_item.calorias
+            menu_items.append({
+                "id_objeto": menu_item.id_objeto,
+                "quantity": item['quantity'],
+                "precio": menu_item.precio,
+                "calorias": menu_item.calorias
+            })
+            total_price += menu_item.precio * item['quantity']
+            total_calories += menu_item.calorias * item['quantity']
 
         return menu_items, total_price, total_calories
 
@@ -112,106 +131,38 @@ class OrderService:
         Returns:
             int: Puntos calculados.
         """
-        return total_price // 10  # Ejemplo: 1 punto por cada 10 unidades de precio
+        return int(total_price // 10)  # Ejemplo: 1 punto por cada 10 unidades de precio
 
-    def get_orders_for_user(self, user_id):
+    def get_or_create_address(self, address_data):
         """
-        Recupera los pedidos realizados por un usuario.
+        Crea o busca una dirección en la base de datos.
 
         Args:
-            user_id (int): ID del usuario.
+            address_data (dict): Diccionario con los detalles de la dirección.
 
         Returns:
-            list: Lista de pedidos realizados por el usuario.
-
-        Raises:
-            ValueError: Si ocurre un error al recuperar los pedidos.
+            Address: Objeto de la dirección.
         """
-        try:
-            orders = Orden.query.filter_by(id_usuario=user_id).all()
-            if not orders:
-                return {"message": "No se encontraron pedidos para este usuario."}
+        address = Address.query.filter_by(
+            address=address_data.get('address'),
+            city=address_data.get('city'),
+            state=address_data.get('state'),
+            zip_code=address_data.get('zip_code'),
+            country=address_data.get('country')
+        ).first()
 
-            orders_data = []
-            for order in orders:
-                restaurant = self.get_restaurant(order.id_restaurante)
-                order_data = {
-                    "order_id": order.id_orden,
-                    "restaurant_name": restaurant.nombre,
-                    "total_price": order.precio_total,
-                    "total_points": order.puntos,
-                    "address": order.direccion,
-                    "order_status": order.estado,
-                }
-                orders_data.append(order_data)
+        if not address:
+            address = Address(
+                address=address_data.get('address'),
+                city=address_data.get('city'),
+                state=address_data.get('state'),
+                zip_code=address_data.get('zip_code'),
+                country=address_data.get('country')
+            )
+            db.session.add(address)
+            db.session.flush()  # Asegura que la dirección tenga un ID antes de usarla
 
-            return orders_data
-        except Exception as e:
-            logging.error(f"Error al recuperar los pedidos para el usuario {user_id}: {e}")
-            raise ValueError("Ocurrió un error al recuperar los pedidos.")
-
-    def cancel_order(self, order_id):
-        """
-        Cancela un pedido existente.
-
-        Args:
-            order_id (int): ID del pedido a cancelar.
-
-        Returns:
-            dict: Mensaje de éxito indicando que el pedido fue cancelado.
-
-        Raises:
-            ValueError: Si ocurre un error al cancelar el pedido.
-        """
-        try:
-            order = Orden.query.get(order_id)
-            if not order:
-                raise ValueError("Pedido no encontrado.")
-
-            # Actualizar el estado del pedido
-            order.estado = 'Cancelled'
-
-            # Revertir los puntos del usuario
-            user = self.get_user(order.id_usuario)
-            self.reward_service.update_user_points(user, -order.puntos)
-
-            db.session.commit()
-
-            return {"message": "Pedido cancelado exitosamente"}
-        except Exception as e:
-            logging.error(f"Error al cancelar el pedido {order_id}: {e}")
-            raise ValueError("Ocurrió un error al cancelar el pedido.")
-
-    def process_payment(self, order_id, payment_method):
-        """
-        Procesa el pago de un pedido.
-
-        Args:
-            order_id (int): ID del pedido.
-            payment_method (str): Método de pago utilizado.
-
-        Returns:
-            dict: Mensaje indicando el estado del pago.
-
-        Raises:
-            ValueError: Si ocurre un error al procesar el pago.
-        """
-        try:
-            order = Orden.query.get(order_id)
-            if not order:
-                raise ValueError("Pedido no encontrado.")
-
-            # Simular el procesamiento del pago
-            payment_status = "Paid"
-
-            # Actualizar el estado del pedido
-            order.estado = payment_status
-            db.session.commit()
-
-            return {"message": f"Pago procesado exitosamente. Estado del pedido: {payment_status}"}
-        except Exception as e:
-            logging.error(f"Error al procesar el pago para el pedido {order_id}: {e}")
-            raise ValueError("Ocurrió un error al procesar el pago.")
+        return address
 
     def get_user(self, user_id):
         """

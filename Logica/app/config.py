@@ -4,7 +4,7 @@ import os
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'mysecretkey')  # Clave secreta predeterminada para desarrollo local.
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # Desactiva el seguimiento de modificaciones para mejorar el rendimiento.
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'mysql://user:password@localhost/mydb')  # URI de la base de datos.
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'mysql://user:2016@localhost/mydb')  # URI de la base de datos.
 
 # Configuración específica para el entorno de desarrollo.
 class DevelopmentConfig(Config):

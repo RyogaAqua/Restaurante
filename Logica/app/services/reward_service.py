@@ -1,5 +1,5 @@
 import logging
-from ..models import Usuario  # Importación correcta de la clase Usuario
+from ..models import PuntosBalance  # Actualizado para usar la tabla Puntos_Balance
 from app.extensions import db  # Importa db desde extensions.py
 
 """
@@ -37,11 +37,11 @@ class RewardService:
             ValueError: Si ocurre un error al recuperar las recompensas.
         """
         try:
-            user = Usuario.query.get(user_id)  # Recupera el usuario por su ID
-            if not user:
-                raise ValueError("Usuario no encontrado.")
+            puntos_balance = PuntosBalance.query.get(user_id)  # Recupera el balance de puntos por ID de usuario
+            if not puntos_balance:
+                raise ValueError("Usuario no encontrado o sin balance de puntos.")
 
-            user_points = user.puntos  # Obtiene los puntos actuales del usuario
+            user_points = puntos_balance.puntos_total  # Obtiene los puntos actuales del usuario
             available_rewards = []
 
             # Verifica qué recompensas están disponibles según los puntos del usuario
@@ -72,11 +72,11 @@ class RewardService:
             ValueError: Si ocurre un error durante el canje de la recompensa.
         """
         try:
-            user = Usuario.query.get(user_id)  # Recupera el usuario por su ID
-            if not user:
-                raise ValueError("Usuario no encontrado.")
+            puntos_balance = PuntosBalance.query.get(user_id)  # Recupera el balance de puntos por ID de usuario
+            if not puntos_balance:
+                raise ValueError("Usuario no encontrado o sin balance de puntos.")
 
-            user_points = user.puntos  # Obtiene los puntos actuales del usuario
+            user_points = puntos_balance.puntos_total  # Obtiene los puntos actuales del usuario
 
             # Verifica si la recompensa existe
             if reward_name not in self.rewards:
@@ -89,7 +89,8 @@ class RewardService:
                 raise ValueError("Puntos insuficientes para canjear esta recompensa.")
 
             # Deduce los puntos y actualiza el registro del usuario
-            user.puntos -= required_points
+            puntos_balance.puntos_total -= required_points
+            puntos_balance.redimidos_total += required_points
             db.session.commit()
 
             return {"message": f"Recompensa '{reward_name}' canjeada exitosamente."}
@@ -111,11 +112,11 @@ class RewardService:
             ValueError: Si ocurre un error al recuperar los puntos del usuario.
         """
         try:
-            user = Usuario.query.get(user_id)  # Recupera el usuario por su ID
-            if not user:
-                raise ValueError("Usuario no encontrado.")
+            puntos_balance = PuntosBalance.query.get(user_id)  # Recupera el balance de puntos por ID de usuario
+            if not puntos_balance:
+                raise ValueError("Usuario no encontrado o sin balance de puntos.")
             
-            return user.puntos
+            return puntos_balance.puntos_total
         except Exception as e:
             logging.error(f"Error al recuperar los puntos para el usuario {user_id}: {e}")
             raise ValueError("Ocurrió un error al recuperar los puntos del usuario.")
@@ -135,14 +136,14 @@ class RewardService:
             ValueError: Si ocurre un error al actualizar los puntos del usuario.
         """
         try:
-            user = Usuario.query.get(user_id)  # Recupera el usuario por su ID
-            if not user:
-                raise ValueError("Usuario no encontrado.")
+            puntos_balance = PuntosBalance.query.get(user_id)  # Recupera el balance de puntos por ID de usuario
+            if not puntos_balance:
+                raise ValueError("Usuario no encontrado o sin balance de puntos.")
             
-            user.puntos += points
+            puntos_balance.puntos_total += points
             db.session.commit()
 
-            return user.puntos
+            return puntos_balance.puntos_total
         except Exception as e:
             logging.error(f"Error al actualizar los puntos para el usuario {user_id}: {e}")
             raise ValueError("Ocurrió un error al actualizar los puntos del usuario.")

@@ -1,5 +1,5 @@
 import logging
-from ..models import Orden, Usuario  # Importación correcta de las clases
+from ..models import Orden, PuntosBalance  # Actualizado para usar PuntosBalance
 from app.extensions import db  # Importa db desde extensions.py
 
 """
@@ -41,7 +41,7 @@ class PaymentService:
                 raise ValueError("Pedido no encontrado.")
 
             # Validar que el pedido esté pendiente de pago
-            if order.estado != 'Pendiente':  # Actualizado para coincidir con el campo en el modelo Orden
+            if order.estado != 'Pendiente':  # Validar el estado del pedido
                 raise ValueError("Este pedido no está en estado pendiente.")
 
             # Simular el procesamiento del pago (reemplazar con integración real)
@@ -49,12 +49,11 @@ class PaymentService:
 
             if payment_response.get('status') == 'success':
                 # Actualizar el estado del pedido a "Pagado"
-                order.estado = 'Pagado'  # Actualizado para coincidir con el campo en el modelo Orden
+                order.estado = 'Pagado'
                 db.session.commit()
 
                 # Actualizar los puntos del usuario después del pago exitoso
-                user = Usuario.query.get(order.id_usuario)  # Actualizado para usar el nombre correcto de la clase y campo
-                self.update_user_points(user, order.puntos)  # Actualizado para coincidir con el campo en el modelo Orden
+                self.update_user_points(order.id_usuario, order.puntos_ganados)
 
                 return {"message": "Pago procesado exitosamente", "order_id": order_id, "status": "Paid"}
             else:
@@ -82,22 +81,26 @@ class PaymentService:
             "amount": amount
         }
 
-    def update_user_points(self, user, points):
+    def update_user_points(self, user_id, points_earned):
         """
         Actualiza los puntos del usuario después de una compra exitosa.
 
         Args:
-            user (Usuario): Usuario cuyos puntos serán actualizados.
-            points (int): Puntos a agregar o restar.
+            user_id (int): ID del usuario cuyos puntos serán actualizados.
+            points_earned (int): Puntos ganados en la transacción.
 
         Raises:
             ValueError: Si ocurre un error al actualizar los puntos del usuario.
         """
         try:
-            user.puntos += points  # Actualizado para coincidir con el campo en el modelo Usuario
+            puntos_balance = PuntosBalance.query.get(user_id)
+            if not puntos_balance:
+                raise ValueError("Usuario no encontrado o sin balance de puntos.")
+
+            puntos_balance.puntos_total += points_earned
             db.session.commit()
         except Exception as e:
-            logging.error(f"Error al actualizar los puntos del usuario {user.id_usuario}: {e}")  # Campo actualizado
+            logging.error(f"Error al actualizar los puntos del usuario {user_id}: {e}")
             raise ValueError("Ocurrió un error al actualizar los puntos del usuario.")
 
     def verify_payment_status(self, transaction_id):
