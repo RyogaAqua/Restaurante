@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.order_service import OrderService
+from ..services.order_service import OrderService  # Cambiar a import relativo
 
 """
 Este módulo define las rutas relacionadas con los pedidos, permitiendo a los usuarios

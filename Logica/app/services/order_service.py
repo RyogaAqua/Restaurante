@@ -1,7 +1,7 @@
 import logging
-from ..models import Orden, Restaurante, MenuObjetos, Usuario, Address, OrdenItems  # Importación correcta de las clases
-from app.extensions import db  # Importa db desde extensions.py
-from app.services.reward_service import RewardService
+from ..models import Orden, MenuObjetos, Usuario, Address, OrdenItems  # Cambiar a import relativo
+from ..extensions import db  # Import relativo correcto
+from ..services.reward_service import RewardService  # Cambiar a import relativo
 
 """
 Este módulo contiene la lógica para manejar pedidos, incluyendo la creación, validación,

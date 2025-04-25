@@ -1,6 +1,5 @@
 # filepath: c:\Users\emman\Documents\Restaurante\Logica\app\extensions.py
-from flask_sqlalchemy import SQLAlchemy  # Importa SQLAlchemy para manejar la base de datos
+from flask_sqlalchemy import SQLAlchemy
 
-# Inicializa la instancia de SQLAlchemy
-# Esta instancia será utilizada para interactuar con la base de datos en toda la aplicación
+# Instancia de SQLAlchemy para manejar la base de datos
 db = SQLAlchemy()

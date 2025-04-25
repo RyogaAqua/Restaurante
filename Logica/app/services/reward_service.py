@@ -1,6 +1,6 @@
 import logging
 from ..models import PuntosBalance  # Actualizado para usar la tabla Puntos_Balance
-from app.extensions import db  # Importa db desde extensions.py
+from ..extensions import db  # Import relativo correcto
 
 """
 Este módulo contiene la lógica para manejar el sistema de recompensas,

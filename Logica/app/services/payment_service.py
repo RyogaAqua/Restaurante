@@ -1,6 +1,6 @@
 import logging
 from ..models import Orden, PuntosBalance  # Actualizado para usar PuntosBalance
-from app.extensions import db  # Importa db desde extensions.py
+from ..extensions import db  # Cambiar a import relativo
 
 """
 Este módulo contiene la lógica para manejar los pagos, incluyendo el procesamiento,

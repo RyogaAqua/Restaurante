@@ -1,4 +1,4 @@
-from app.extensions import db  # Importa db desde extensions.py
+from ..extensions import db  # Import relativo correcto
 
 class AuthService:
     """

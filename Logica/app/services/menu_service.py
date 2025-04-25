@@ -1,5 +1,5 @@
 from ..models import MenuObjetos  # Importación relativa para el modelo MenuObjetos
-from app.extensions import db  # Importa db desde extensions.py
+from ..extensions import db  # Cambiar a import relativo
 
 """
 Este módulo contiene funciones para manejar la lógica relacionada con el menú,

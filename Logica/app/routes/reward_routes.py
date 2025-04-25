@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.reward_service import RewardService
+from ..services.reward_service import RewardService  # Cambiar a import relativo
 
 """
 Este módulo define las rutas relacionadas con las recompensas, permitiendo a los usuarios

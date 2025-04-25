@@ -1,4 +1,4 @@
-from app.extensions import db  # Importa la instancia de la base de datos desde extensions.py
+from .extensions import db  # Cambiar a import relativo correcto
 
 # Modelo para la tabla Usuarios
 class Usuario(db.Model):

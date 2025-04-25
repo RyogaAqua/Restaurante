@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.auth_service import AuthService
+from ..services.auth_service import AuthService  # Cambiar a import relativo
 
 """
 Este módulo define las rutas relacionadas con la autenticación de usuarios,

@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from app.services.menu_service import get_menu
+from ..services.menu_service import get_menu
 
 """
 Este módulo define las rutas relacionadas con el menú, permitiendo a los usuarios

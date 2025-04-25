@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.payment_service import PaymentService
+from ..services.payment_service import PaymentService  # Cambiar a import relativo
 
 """
 Este módulo define las rutas relacionadas con los pagos, permitiendo a los usuarios
