@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_migrate import Migrate
-from .extensions import db
+from .extensions import db, cors
 from .config import Config
 from .routes import bp as routes_bp
 
@@ -24,6 +24,7 @@ def create_app():
     # Inicializa las extensiones
     db.init_app(app)
     migrate.init_app(app, db)  # Inicializa Flask-Migrate
+    cors.init_app(app, resources={r"/*": {"origins": "*"}})  # Permitir todas las solicitudes de origen cruzado
 
     # Registra los blueprints
     app.register_blueprint(routes_bp)

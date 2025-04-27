@@ -45,3 +45,27 @@ def payment():
     except Exception as e:
         # Manejar errores inesperados
         return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
+
+@bp.route('/payment/history', methods=['GET'])
+def payment_history():
+    """
+    Ruta para obtener el historial de pagos de un usuario.
+
+    Procesa una solicitud GET con el parámetro `user_id` para identificar al usuario
+    y devuelve una lista de pagos realizados.
+
+    Returns:
+        Response: Respuesta JSON con el historial de pagos o un mensaje de error.
+    """
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            raise ValueError("Falta el parámetro requerido: user_id.")
+
+        # Llamar al método get_payment_history del servicio de pagos
+        payment_history = payment_service.get_payment_history(user_id)
+        return jsonify({"payments": payment_history}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500

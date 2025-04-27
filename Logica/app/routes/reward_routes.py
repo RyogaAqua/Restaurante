@@ -38,3 +38,25 @@ def rewards():
     except Exception as e:
         # Manejar errores inesperados
         return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
+
+@bp.route('/rewards/redeem', methods=['POST'])
+def redeem():
+    """
+    Ruta para canjear una recompensa.
+
+    Procesa una solicitud POST con el ID del usuario y el nombre de la recompensa.
+    """
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        reward_name = data.get('reward_name')
+
+        if not user_id or not reward_name:
+            raise ValueError("Faltan campos requeridos: user_id o reward_name.")
+
+        result = reward_service.redeem_reward(user_id, reward_name)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500

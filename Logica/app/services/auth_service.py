@@ -1,4 +1,7 @@
 from ..extensions import db  # Import relativo correcto
+from werkzeug.security import check_password_hash, generate_password_hash
+from itsdangerous import URLSafeTimedSerializer
+from flask import current_app
 
 class AuthService:
     """
@@ -87,3 +90,147 @@ class AuthService:
         user.metodo_de_pago = metodo_de_pago
         db.session.commit()
         return user
+
+    def update_user_profile(self, user_id, updated_data):
+        """
+        Actualiza el perfil del usuario en la base de datos.
+
+        Args:
+            user_id (int): ID del usuario.
+            updated_data (dict): Diccionario con los datos actualizados del usuario.
+
+        Returns:
+            dict: Datos actualizados del usuario.
+
+        Raises:
+            ValueError: Si el usuario no existe o ocurre un error durante la actualización.
+        """
+        from ..models import Usuario, Address  # Importación diferida para evitar dependencia circular
+        try:
+            user = Usuario.query.get(user_id)
+            if not user:
+                raise ValueError("Usuario no encontrado.")
+
+            # Actualizar los datos del usuario
+            user.nombre_usuario = updated_data.get('nombre_usuario', user.nombre_usuario)
+            user.apellido_usuario = updated_data.get('apellido_usuario', user.apellido_usuario)
+            user.email = updated_data.get('email', user.email)
+            user.telefono = updated_data.get('telefono', user.telefono)
+
+            # Actualizar o crear la dirección
+            address_data = updated_data.get('address')
+            if address_data:
+                address = Address.query.filter_by(
+                    address=address_data.get('address'),
+                    city=address_data.get('city'),
+                    state=address_data.get('state'),
+                    zip_code=address_data.get('zip_code'),
+                    country=address_data.get('country')
+                ).first()
+
+                if not address:
+                    address = Address(
+                        address=address_data.get('address'),
+                        city=address_data.get('city'),
+                        state=address_data.get('state'),
+                        zip_code=address_data.get('zip_code'),
+                        country=address_data.get('country')
+                    )
+                    db.session.add(address)
+                    db.session.flush()  # Asegura que la dirección tenga un ID antes de usarla
+
+                user.id_address = address.id_address
+
+            db.session.commit()
+            return {
+                "id_usuario": user.id_usuario,
+                "nombre_usuario": user.nombre_usuario,
+                "apellido_usuario": user.apellido_usuario,
+                "email": user.email,
+                "telefono": user.telefono,
+                "address": address.to_dict() if address else None
+            }
+        except Exception as e:
+            db.session.rollback()
+            raise ValueError(f"Error al actualizar el perfil del usuario: {e}")
+
+    def change_user_password(self, user_id, current_password, new_password):
+        """
+        Cambia la contraseña de un usuario después de validar la contraseña actual.
+
+        Args:
+            user_id (int): ID del usuario.
+            current_password (str): Contraseña actual del usuario.
+            new_password (str): Nueva contraseña del usuario.
+
+        Raises:
+            ValueError: Si la contraseña actual no coincide o si ocurre un error.
+        """
+        from ..models import Usuario  # Importación diferida para evitar dependencia circular
+        try:
+            user = Usuario.query.get(user_id)
+            if not user:
+                raise ValueError("Usuario no encontrado.")
+
+            # Validar la contraseña actual
+            if not check_password_hash(user.hash_contrasena_usuario, current_password):
+                raise ValueError("La contraseña actual es incorrecta.")
+
+            # Generar el hash de la nueva contraseña
+            user.hash_contrasena_usuario = generate_password_hash(new_password)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            raise ValueError(f"Error al cambiar la contraseña: {e}")
+
+    def send_password_reset_email(self, email):
+        """
+        Envía un correo electrónico con un enlace para restablecer la contraseña.
+
+        Args:
+            email (str): Correo electrónico del usuario.
+
+        Raises:
+            ValueError: Si el usuario no existe.
+        """
+        from ..models import Usuario  # Importación diferida para evitar dependencia circular
+        user = self.get_user_by_email(email)
+        if not user:
+            raise ValueError("No se encontró un usuario con ese correo electrónico.")
+
+        # Generar un token de restablecimiento
+        serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        token = serializer.dumps(email, salt='password-reset-salt')
+
+        # Construir el enlace de restablecimiento
+        reset_url = f"{current_app.config.get('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token={token}"
+
+        # Enviar el correo (simulado aquí, reemplazar con integración real)
+        print(f"Enlace de restablecimiento de contraseña: {reset_url}")
+
+    def reset_password(self, token, new_password):
+        """
+        Restablece la contraseña del usuario utilizando un token de restablecimiento.
+
+        Args:
+            token (str): Token de restablecimiento de contraseña.
+            new_password (str): Nueva contraseña del usuario.
+
+        Raises:
+            ValueError: Si el token es inválido o ha expirado.
+        """
+        from ..models import Usuario  # Importación diferida para evitar dependencia circular
+        serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+
+        try:
+            # Validar el token
+            email = serializer.loads(token, salt='password-reset-salt', max_age=3600)  # 1 hora de validez
+            user = self.get_user_by_email(email)
+            if not user:
+                raise ValueError("Usuario no encontrado.")
+
+            # Actualizar la contraseña
+            user.hash_contrasena_usuario = generate_password_hash(new_password)
+            db.session.commit()
+        except Exception as e:
+            raise ValueError("El token es inválido o ha expirado.")

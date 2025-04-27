@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - BurgerRush Restaurant</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">BurgerRush</a>
+            <div class="menu-toggle" id="mobile-menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="menu.html">Menu</a></li>
+                <li><a href="gallery.html">Gallery</a></li>
+                <li><a href="events.html">Events</a></li>
+                <li><a href="blog.html">Blog</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            <div class="nav-buttons">
+                <a href="cart.html" class="cart-btn"><i class="fas fa-shopping-cart"></i></a>
+                <a href="signin.html" class="signin-btn">Sign In</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sign Up Form -->
+    <div class="auth-container">
+        <div class="auth-box">
+            <h2>Create Your Account</h2>
+            <p class="auth-subtitle">Please fill in the details to sign up</p>
+
+            <form id="signup-form" class="auth-form">
+                <div class="form-group">
+                    <label for="nombre_usuario">First Name</label>
+                    <input type="text" id="nombre_usuario" name="nombre_usuario" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="apellido_usuario">Last Name</label>
+                    <input type="text" id="apellido_usuario" name="apellido_usuario" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="telefono">Phone</label>
+                    <input type="text" id="telefono" name="telefono" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="contrasena">Password</label>
+                    <input type="password" id="contrasena" name="contrasena" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="address">Address</label>
+                    <input type="text" id="address" name="address" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city" name="city" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="state">State</label>
+                    <input type="text" id="state" name="state" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="zip_code">Zip Code</label>
+                    <input type="text" id="zip_code" name="zip_code" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="country">Country</label>
+                    <input type="text" id="country" name="country" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="metodo_pago">Payment Method</label>
+                    <select id="metodo_pago" name="metodo_pago">
+                        <option value="credit_card">Credit Card</option>
+                        <option value="paypal">PayPal</option>
+                        <option value="cash">Cash</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="auth-button">Sign Up</button>
+
+                <p class="auth-redirect">
+                    Already have an account? <a href="signin.html">Sign In</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/signup.js"></script>
+</body>
+</html>

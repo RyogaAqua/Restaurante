@@ -140,3 +140,35 @@ class PaymentService:
             "transaction_id": transaction_id,
             "payment_date": "2025-03-24"
         }
+
+    def get_payment_history(self, user_id):
+        """
+        Recupera el historial de pagos de un usuario.
+
+        Args:
+            user_id (int): ID del usuario.
+
+        Returns:
+            list: Lista de pagos realizados por el usuario.
+
+        Raises:
+            ValueError: Si ocurre un error al recuperar el historial de pagos.
+        """
+        try:
+            # Recuperar los pedidos pagados del usuario
+            orders = Orden.query.filter_by(id_usuario=user_id, estado='Pagado').all()
+            payment_history = []
+
+            for order in orders:
+                payment_history.append({
+                    "order_id": order.id_transaccion,
+                    "total_price": float(order.precio_total),
+                    "payment_date": order.fecha_orden.strftime('%Y-%m-%d %H:%M:%S'),
+                    "points_earned": order.puntos_ganados,
+                    "points_spent": order.puntos_gastados
+                })
+
+            return payment_history
+        except Exception as e:
+            logging.error(f"Error al recuperar el historial de pagos para el usuario {user_id}: {e}")
+            raise ValueError("Ocurrió un error al recuperar el historial de pagos.")

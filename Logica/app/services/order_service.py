@@ -199,3 +199,46 @@ class OrderService:
         if not restaurant:
             raise ValueError("Restaurante no encontrado.")
         return restaurant
+
+    def get_order_history(self, user_id):
+        """
+        Recupera el historial de pedidos de un usuario.
+
+        Args:
+            user_id (int): ID del usuario.
+
+        Returns:
+            list: Lista de pedidos anteriores con detalles.
+
+        Raises:
+            ValueError: Si ocurre un error al recuperar el historial de pedidos.
+        """
+        try:
+            orders = Orden.query.filter_by(id_usuario=user_id).order_by(Orden.fecha_orden.desc()).all()
+            order_history = []
+
+            for order in orders:
+                items = OrdenItems.query.filter_by(id_transaccion=order.id_transaccion).all()
+                order_items = [
+                    {
+                        "id_objeto": item.id_objeto,
+                        "nombre_objeto": MenuObjetos.query.get(item.id_objeto).nombre_objeto,
+                        "quantity": item.quantity,
+                        "precio_unitario": float(item.precio_unitario_congelado)
+                    }
+                    for item in items
+                ]
+
+                order_history.append({
+                    "id_transaccion": order.id_transaccion,
+                    "fecha_orden": order.fecha_orden.strftime('%Y-%m-%d %H:%M:%S'),
+                    "precio_total": float(order.precio_total),
+                    "puntos_ganados": order.puntos_ganados,
+                    "puntos_gastados": order.puntos_gastados,
+                    "items": order_items
+                })
+
+            return order_history
+        except Exception as e:
+            logging.error(f"Error al recuperar el historial de pedidos para el usuario {user_id}: {e}")
+            raise ValueError("Ocurrió un error al recuperar el historial de pedidos.")
