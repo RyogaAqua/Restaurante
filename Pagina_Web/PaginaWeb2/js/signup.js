@@ -1,3 +1,6 @@
+// Define API_URL explícitamente
+const API_URL = 'http://127.0.0.1:5000';
+
 document.getElementById('signup-form').addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -16,6 +19,8 @@ document.getElementById('signup-form').addEventListener('submit', async function
         },
         metodo_pago: document.getElementById('metodo_pago').value,
     };
+
+    console.log("Form data being sent:", formData);
 
     try {
         const response = await fetch(`${API_URL}/auth/register`, {

@@ -18,6 +18,7 @@ from Logica.app.routes import (
     stats_routes,
 )
 import os
+import logging
 
 migrate = Migrate()
 
@@ -113,6 +114,6 @@ def register_error_handlers(app):
         """
         return {"error": "Ocurrió un error interno"}, 500
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = create_app()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(debug=True)  # Habilita el modo de depuración

@@ -1,5 +1,8 @@
 from flask import Blueprint, request, jsonify, render_template
 from ..services.auth_service import AuthService  # Cambiar a import relativo
+from app.extensions import db
+from app.models import Usuario
+import logging
 
 """
 Este módulo define las rutas relacionadas con la autenticación de usuarios,
@@ -9,6 +12,41 @@ incluyendo el inicio de sesión y el registro de nuevos usuarios.
 # Crear un blueprint para las rutas de autenticación
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 auth_service = AuthService()  # Instanciar el servicio de autenticación
+
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    try:
+        logging.info("Received registration request")
+        data = request.get_json()
+        logging.info(f"Request data: {data}")
+
+        # Verifica que todos los campos requeridos estén presentes
+        required_fields = ['nombre_usuario', 'apellido_usuario', 'email', 'telefono', 'contrasena', 'address', 'metodo_pago']
+        for field in required_fields:
+            if field not in data:
+                logging.error(f"Missing field: {field}")
+                return jsonify({'error': f'Missing field: {field}'}), 400
+
+        # Crea un nuevo usuario
+        new_user = Usuario(
+            nombre_usuario=data['nombre_usuario'],
+            apellido_usuario=data['apellido_usuario'],
+            email=data['email'],
+            telefono=data['telefono'],
+            hash_contrasena_usuario=data['contrasena'],  # Asegúrate de hashear la contraseña
+            metodo_de_pago=data['metodo_pago']
+        )
+        db.session.add(new_user)
+        db.session.commit()
+
+        logging.info("User registered successfully")
+        return jsonify({'message': 'User registered successfully'}), 201
+    except Exception as e:
+        logging.error(f"Error during registration: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @bp.route('/login', methods=['POST'])
 def login():
@@ -42,39 +80,6 @@ def login():
 @bp.route('/login')
 def login_page():
     return render_template('signin.html')
-
-@bp.route('/register', methods=['POST'])
-def register():
-    """
-    Ruta para registrar un nuevo usuario.
-
-    Procesa una solicitud POST con los datos del usuario (nombre, apellido, correo electrónico,
-    teléfono, contraseña, dirección y método de pago) y registra al usuario en el sistema.
-
-    Returns:
-        Response: Respuesta JSON con un mensaje de éxito si el registro es exitoso,
-                  o un mensaje de error en caso de fallo.
-    """
-    try:
-        # Parsear los datos JSON de la solicitud
-        data = request.get_json()
-        nombre_usuario = data.get('nombre_usuario')
-        apellido_usuario = data.get('apellido_usuario')
-        email = data.get('email')
-        telefono = data.get('telefono')
-        contrasena = data.get('contrasena')
-        address = data.get('address')
-        metodo_pago = data.get('metodo_pago')
-
-        # Llamar al método register_user del servicio de autenticación
-        auth_service.register_user(
-            nombre_usuario, apellido_usuario, email, telefono, contrasena, address, metodo_pago
-        )
-        return jsonify({"message": "Usuario registrado exitosamente"}), 201
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({"error": "Ocurrió un error inesperado"}), 500
 
 @bp.route('/update-profile', methods=['PUT'])
 def update_profile():
