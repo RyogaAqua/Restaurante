@@ -101,7 +101,7 @@ body {
     background-size: cover; /* Escala la imagen para cubrir todo el contenedor */
     background-position: center; /* Centra la imagen */
     background-repeat: no-repeat; /* Evita que la imagen se repita */
-    height: 300px; /* Ajusta la altura para que coincida con otras páginas */
+    height: 500px; /* Cambia la altura a 500px para hacerla más grande */
     display: flex;
     align-items: center;
     justify-content: center;

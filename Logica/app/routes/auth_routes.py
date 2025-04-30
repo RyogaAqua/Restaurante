@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from ..services.auth_service import AuthService  # Cambiar a import relativo
 
 """
@@ -7,7 +7,7 @@ incluyendo el inicio de sesión y el registro de nuevos usuarios.
 """
 
 # Crear un blueprint para las rutas de autenticación
-bp = Blueprint('auth_routes', __name__)
+bp = Blueprint('auth', __name__, url_prefix='/auth')
 auth_service = AuthService()  # Instanciar el servicio de autenticación
 
 @bp.route('/login', methods=['POST'])
@@ -22,9 +22,12 @@ def login():
         Response: Respuesta JSON con un mensaje de éxito y el token de autenticación,
                   o un mensaje de error en caso de fallo.
     """
+    data = request.get_json()
+    if not data or 'email' not in data or 'password' not in data:
+        return jsonify({"error": "Recurso no encontrado"}), 404
+
     try:
         # Parsear los datos JSON de la solicitud
-        data = request.get_json()
         email = data.get('email')
         password = data.get('password')
 
@@ -35,6 +38,10 @@ def login():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado"}), 500
+
+@bp.route('/login')
+def login_page():
+    return render_template('signin.html')
 
 @bp.route('/register', methods=['POST'])
 def register():

@@ -2,10 +2,8 @@ import os
 
 # Clase base de configuración con valores predeterminados.
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "default_secret_key")
-    SQLALCHEMY_DATABASE_URI = (
-        f"mysql+pymysql://root:2016@localhost:3306/mydb"  # Conexión a MySQL
-    )
+    SECRET_KEY = os.getenv('SECRET_KEY', 'default-secret-key')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///restaurante.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Configuración específica para el entorno de desarrollo.

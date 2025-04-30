@@ -17,6 +17,7 @@ from Logica.app.routes import (
     support_routes,
     stats_routes,
 )
+import os
 
 migrate = Migrate()
 
@@ -34,9 +35,8 @@ def create_app():
     """
     app = Flask(
         __name__,
-        static_folder="../../Pagina_Web/PaginaWeb2",  # Ruta a los archivos estáticos
-        static_url_path="",
-        template_folder="../../Pagina_Web/PaginaWeb2"  # Ruta a las plantillas HTML
+        static_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2'),
+        template_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2')
     )
     app.config.from_object(Config)
 
@@ -66,7 +66,7 @@ def create_app():
     # Ruta para servir la página principal
     @app.route("/")
     def home():
-        return render_template("index.html")  # Renderiza el archivo index.html
+        return app.send_static_file('index.html')
 
     # Ruta para servir archivos estáticos (CSS, JS, imágenes, etc.)
     @app.route("/static/<path:filename>")
