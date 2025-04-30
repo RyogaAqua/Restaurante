@@ -1,10 +1,8 @@
 from flask import Flask
 from flask_migrate import Migrate
-from .extensions import db, cors
+from .extensions import db, cors, migrate
 from .config import Config
-from .routes import bp as routes_bp
-
-migrate = Migrate()
+from .routes import bp as main_bp
 
 def create_app():
     """
@@ -27,7 +25,7 @@ def create_app():
     cors.init_app(app, resources={r"/*": {"origins": "*"}})  # Permitir todas las solicitudes de origen cruzado
 
     # Registra los blueprints
-    app.register_blueprint(routes_bp)
+    app.register_blueprint(main_bp)
 
     # Agrega manejadores globales de errores (opcional)
     register_error_handlers(app)

@@ -1,8 +1,22 @@
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify, render_template
 from flask_migrate import Migrate
 from .extensions import db, cors
 from .config import Config
 from .routes import bp as routes_bp
+from Logica.app.routes import (
+    address_routes,
+    auth_routes,
+    delivery_routes,
+    cart_routes,
+    inventory_routes,
+    menu_routes,
+    notification_routes,
+    order_routes,
+    payment_routes,
+    reward_routes,
+    support_routes,
+    stats_routes,
+)
 
 migrate = Migrate()
 
@@ -18,7 +32,12 @@ def create_app():
     Returns:
         app (Flask): La instancia de la aplicación Flask configurada.
     """
-    app = Flask(__name__, static_folder="../../Pagina_Web/PaginaWeb2", static_url_path="/")
+    app = Flask(
+        __name__,
+        static_folder="../../Pagina_Web/PaginaWeb2",  # Ruta a los archivos estáticos
+        static_url_path="",
+        template_folder="../../Pagina_Web/PaginaWeb2"  # Ruta a las plantillas HTML
+    )
     app.config.from_object(Config)
 
     # Inicializa las extensiones
@@ -28,19 +47,31 @@ def create_app():
 
     # Registra los blueprints
     app.register_blueprint(routes_bp)
+    app.register_blueprint(address_routes.bp)
+    app.register_blueprint(auth_routes.bp)
+    app.register_blueprint(delivery_routes.bp)
+    app.register_blueprint(cart_routes.bp)
+    app.register_blueprint(inventory_routes.bp)
+    app.register_blueprint(menu_routes.bp)
+    app.register_blueprint(notification_routes.bp)
+    app.register_blueprint(order_routes.bp)
+    app.register_blueprint(payment_routes.bp)
+    app.register_blueprint(reward_routes.bp)
+    app.register_blueprint(support_routes.bp)
+    app.register_blueprint(stats_routes.bp)
 
     # Agrega manejadores globales de errores
     register_error_handlers(app)
 
-    # Ruta para servir el archivo index.html
+    # Ruta para servir la página principal
     @app.route("/")
-    def serve_index():
-        return send_from_directory(app.static_folder, "index.html")
+    def home():
+        return render_template("index.html")  # Renderiza el archivo index.html
 
-    # Ruta para servir otros archivos estáticos (CSS, JS, imágenes, etc.)
-    @app.route("/<path:path>")
-    def serve_static_files(path):
-        return send_from_directory(app.static_folder, path)
+    # Ruta para servir archivos estáticos (CSS, JS, imágenes, etc.)
+    @app.route("/static/<path:filename>")
+    def static_files(filename):
+        return send_from_directory(app.static_folder, filename)
 
     return app
 
