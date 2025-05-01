@@ -1,5 +1,5 @@
 import os
-from flask import Flask, send_from_directory
+from flask import Flask, render_template
 
 def create_app():
     """
@@ -14,19 +14,19 @@ def create_app():
     # Configura Flask para usar PaginaWeb2 como base para plantillas y archivos estáticos
     app = Flask(
         __name__,
-        static_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2'),
+        static_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2', 'static'),
         template_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2')
     )
 
     # Ruta para la página principal
     @app.route('/')
     def home():
-        return app.send_static_file('index.html')
+        return render_template('index.html')  # Usa render_template para buscar en template_folder
 
-    # Ruta para servir otros archivos HTML
-    @app.route('/<path:filename>')
-    def serve_html(filename):
-        return app.send_static_file(filename)
+    # Ruta genérica para servir otras páginas HTML
+    @app.route('/<page_name>.html')
+    def render_page(page_name):
+        return render_template(f"{page_name}.html")  # Busca en template_folder
 
     return app
 

@@ -36,7 +36,7 @@ def create_app():
     """
     app = Flask(
         __name__,
-        static_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2'),
+        static_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2', 'static'),
         template_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2')
     )
     app.config.from_object(Config)
@@ -67,7 +67,12 @@ def create_app():
     # Ruta para servir la página principal
     @app.route("/")
     def home():
-        return app.send_static_file('index.html')
+        return render_template('index.html')
+
+    # Ruta genérica para servir otras páginas HTML
+    @app.route("/<page_name>.html")
+    def render_page(page_name):
+        return render_template(f"{page_name}.html")  # Busca en template_folder
 
     # Ruta para servir archivos estáticos (CSS, JS, imágenes, etc.)
     @app.route("/static/<path:filename>")
