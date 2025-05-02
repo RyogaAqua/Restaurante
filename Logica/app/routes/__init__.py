@@ -1,4 +1,5 @@
 from flask import Flask, render_template
+import logging
 
 """
 Este módulo inicializa y registra los blueprints para las rutas de la aplicación Flask.
@@ -9,7 +10,7 @@ la escalabilidad y el mantenimiento del código.
 
 # Importa los blueprints de las rutas
 from .address_routes import bp as address_bp
-from .auth_routes import bp as auth_bp
+from .auth_routes import auth_bp
 from .delivery_routes import bp as delivery_bp
 from .cart_routes import bp as cart_bp
 from .inventory_routes import bp as inventory_bp
@@ -34,7 +35,8 @@ def register_routes(app: Flask):
         return render_template('about.html')
 
     app.register_blueprint(address_bp, url_prefix='/addresses')
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+    logging.info("Registering auth_bp blueprint with prefix '/auth'")
+    app.register_blueprint(auth_bp, url_prefix='/auth')  # Asegúrate de registrar el blueprint de autenticación
     app.register_blueprint(delivery_bp, url_prefix='/delivery')
     app.register_blueprint(cart_bp, url_prefix='/cart')
     app.register_blueprint(inventory_bp, url_prefix='/inventory')

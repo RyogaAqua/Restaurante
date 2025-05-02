@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, render_template
 from ..services.auth_service import AuthService  # Cambiar a import relativo
-from app.extensions import db
-from app.models import Usuario
+from ..extensions import db
+from Logica.app.models import Usuarios, Address, Puntos
+from Logica.app.utils.security import hash_password  # Importar función para hashear contraseñas
 import logging
 
 """
@@ -10,10 +11,8 @@ incluyendo el inicio de sesión y el registro de nuevos usuarios.
 """
 
 # Crear un blueprint para las rutas de autenticación
-bp = Blueprint('auth', __name__, url_prefix='/auth')
-auth_service = AuthService()  # Instanciar el servicio de autenticación
-
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+auth_service = AuthService()  # Instanciar el servicio de autenticación
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -22,21 +21,48 @@ def register():
         data = request.get_json()
         logging.info(f"Request data: {data}")
 
-        # Verifica que todos los campos requeridos estén presentes
-        required_fields = ['nombre_usuario', 'apellido_usuario', 'email', 'telefono', 'contrasena', 'address', 'metodo_pago']
+        # Validar y procesar los datos enviados desde el frontend
+        required_fields = ['nombre_usuario', 'apellido_usuario', 'email', 'telefono', 'contrasena', 'metodo_pago', 'address']
         for field in required_fields:
             if field not in data:
                 logging.error(f"Missing field: {field}")
                 return jsonify({'error': f'Missing field: {field}'}), 400
 
-        # Crea un nuevo usuario
-        new_user = Usuario(
+        # Validar dirección
+        address_data = data['address']
+        if not isinstance(address_data, dict):
+            logging.error("Invalid address format")
+            return jsonify({'error': 'Invalid address format'}), 400
+
+        # Crear o verificar la dirección
+        address = Address.query.filter_by(address=address_data['address']).first()
+        if not address:
+            address = Address(
+                address=address_data['address'],
+                zip_code=address_data.get('zip_code'),
+                state=address_data.get('state'),
+                country=address_data.get('country'),
+                city=address_data.get('city')
+            )
+            db.session.add(address)
+            db.session.flush()
+
+        # Crear puntos iniciales
+        puntos = Puntos(puntos_total=0)
+        db.session.add(puntos)
+        db.session.flush()
+
+        # Crear usuario con contraseña hasheada
+        hashed_password = hash_password(data['contrasena'])
+        new_user = Usuarios(
             nombre_usuario=data['nombre_usuario'],
             apellido_usuario=data['apellido_usuario'],
             email=data['email'],
             telefono=data['telefono'],
-            hash_contrasena_usuario=data['contrasena'],  # Asegúrate de hashear la contraseña
-            metodo_de_pago=data['metodo_pago']
+            hash_contrasena_usuario=hashed_password,  # Contraseña hasheada
+            metodo_de_pago=data['metodo_pago'],
+            puntos=puntos.puntos_total,
+            id_address=address.id_address
         )
         db.session.add(new_user)
         db.session.commit()
@@ -46,9 +72,9 @@ def register():
     except Exception as e:
         logging.error(f"Error during registration: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Ocurrió un error al registrar el usuario. Por favor, inténtalo de nuevo.'}), 500
 
-@bp.route('/login', methods=['POST'])
+@auth_bp.route('/login', methods=['POST'])
 def login():
     """
     Ruta para iniciar sesión.
@@ -77,11 +103,11 @@ def login():
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado"}), 500
 
-@bp.route('/login')
+@auth_bp.route('/login')
 def login_page():
     return render_template('signin.html')
 
-@bp.route('/update-profile', methods=['PUT'])
+@auth_bp.route('/update-profile', methods=['PUT'])
 def update_profile():
     """
     Ruta para actualizar el perfil del usuario.
@@ -112,7 +138,7 @@ def update_profile():
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
 
-@bp.route('/change-password', methods=['PUT'])
+@auth_bp.route('/change-password', methods=['PUT'])
 def change_password():
     """
     Ruta para cambiar la contraseña del usuario.
@@ -141,7 +167,7 @@ def change_password():
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
 
-@bp.route('/forgot-password', methods=['POST'])
+@auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
     """
     Ruta para solicitar el restablecimiento de contraseña.
@@ -167,7 +193,7 @@ def forgot_password():
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
 
-@bp.route('/reset-password', methods=['POST'])
+@auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
     """
     Ruta para restablecer la contraseña del usuario.

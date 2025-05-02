@@ -1,9 +1,10 @@
 from flask import Flask, send_from_directory, jsonify, render_template
 from flask_migrate import Migrate
-from .extensions import db, cors
+from Logica.app.extensions import db
+from .extensions import cors
 from .config import Config
-from .routes import bp as routes_bp
-from Logica.app.routes import (
+from .routes import register_routes  # Importar la función para registrar rutas
+from .routes import (
     address_routes,
     auth_routes,
     delivery_routes,
@@ -19,6 +20,7 @@ from Logica.app.routes import (
 )
 import os
 import logging
+from flask.cli import with_appcontext
 
 migrate = Migrate()
 
@@ -43,23 +45,11 @@ def create_app():
 
     # Inicializa las extensiones
     db.init_app(app)
-    migrate.init_app(app, db)  # Inicializa Flask-Migrate
+    migrate.init_app(app, db)  # Registrar Flask-Migrate con la aplicación y la base de datos
     cors.init_app(app, resources={r"/*": {"origins": "*"}})  # Permitir todas las solicitudes de origen cruzado
 
-    # Registra los blueprints
-    app.register_blueprint(routes_bp)
-    app.register_blueprint(address_routes.bp)
-    app.register_blueprint(auth_routes.bp)
-    app.register_blueprint(delivery_routes.bp)
-    app.register_blueprint(cart_routes.bp)
-    app.register_blueprint(inventory_routes.bp)
-    app.register_blueprint(menu_routes.bp)
-    app.register_blueprint(notification_routes.bp)
-    app.register_blueprint(order_routes.bp)
-    app.register_blueprint(payment_routes.bp)
-    app.register_blueprint(reward_routes.bp)
-    app.register_blueprint(support_routes.bp)
-    app.register_blueprint(stats_routes.bp)
+    # Registra los blueprints usando la función register_routes
+    register_routes(app)
 
     # Agrega manejadores globales de errores
     register_error_handlers(app)
@@ -119,6 +109,9 @@ def register_error_handlers(app):
         """
         return {"error": "Ocurrió un error interno"}, 500
 
-if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True)  # Habilita el modo de depuración
+# Asegúrate de que Flask CLI pueda reconocer el contexto de la aplicación
+app = create_app()
+
+# Exponer el objeto `app` para Flask CLI
+if __name__ == "__main__":
+    app.run(debug=True)

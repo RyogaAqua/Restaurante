@@ -1,52 +1,54 @@
 from .extensions import db  # Cambiar a import relativo correcto
+from sqlalchemy.orm import relationship
 
 # Modelo para la tabla Usuarios
-class Usuario(db.Model):
-    __tablename__ = 'Usuarios'  # Nombre de la tabla en la base de datos
-    
-    id_usuario = db.Column(db.Integer, primary_key=True)  # Clave primaria
-    nombre_usuario = db.Column(db.String(45), nullable=False)  # Nombre del usuario (obligatorio)
-    apellido_usuario = db.Column(db.String(45), nullable=False)  # Apellido del usuario (obligatorio)
-    email = db.Column(db.String(100), nullable=False, unique=True)  # Correo electrónico (obligatorio y único)
-    telefono = db.Column(db.String(25), nullable=True, unique=True)  # Teléfono (opcional y único)
-    hash_contrasena_usuario = db.Column(db.String(255), nullable=True)  # Contraseña en formato hash (opcional)
-    fecha_ingresada = db.Column(db.DateTime, nullable=True, default=db.func.current_timestamp())  # Fecha de creación
-    metodo_de_pago = db.Column(db.String(45), nullable=True)  # Método de pago preferido (opcional)
-    id_address = db.Column(db.Integer, db.ForeignKey('Address.id_address'), nullable=True)  # Clave foránea a Address
-    
-    # Relación uno a uno con Puntos
-    puntos_balance = db.relationship('PuntosBalance', backref='usuario', uselist=False)
-    # Relación uno a muchos con Orden
-    ordenes = db.relationship('Orden', backref='usuario', lazy=True)
+class Usuarios(db.Model):
+    __tablename__ = 'usuarios'  # Asegúrate de que coincida con el nombre de la tabla en la base de datos
+
+    id_usuario = db.Column('Id_Usuario', db.Integer, primary_key=True)
+    puntos = db.Column('Puntos', db.Integer, nullable=False)
+
+    # Relationships
+    ordenes = db.relationship('Orden', backref='usuario')
 
     def __repr__(self):
-        return f"<Usuario {self.nombre_usuario} {self.apellido_usuario}>"
+        return f"<Usuario {self.id_usuario}>"
 
 # Modelo para la tabla Address
 class Address(db.Model):
-    __tablename__ = 'Address'  # Nombre de la tabla en la base de datos
-    
-    id_address = db.Column(db.Integer, primary_key=True)  # Clave primaria
-    address = db.Column(db.String(255), nullable=False)  # Dirección completa (obligatoria)
-    zip_code = db.Column(db.String(20), nullable=True)  # Código postal (opcional)
-    state = db.Column(db.String(100), nullable=True)  # Estado o provincia (opcional)
-    country = db.Column(db.String(100), nullable=True)  # País (opcional)
-    city = db.Column(db.String(100), nullable=True)  # Ciudad (opcional)
+    __tablename__ = 'Address'
+
+    address = db.Column('address', db.String(45), primary_key=True)
+    zip_code = db.Column('Zip_code', db.String(45))
+    state = db.Column('State', db.String(45))
+    country = db.Column('Country', db.String(45))
+    city = db.Column('City', db.String(45))
 
     def __repr__(self):
         return f"<Address {self.address}, {self.city}, {self.state}>"
 
-# Modelo para la tabla Puntos_Balance
-class PuntosBalance(db.Model):
-    __tablename__ = 'Puntos_Balance'  # Nombre de la tabla en la base de datos
-    
-    id_usuario = db.Column(db.Integer, db.ForeignKey('Usuarios.id_usuario'), primary_key=True)  # Clave primaria y foránea
-    puntos_total = db.Column(db.Integer, nullable=False, default=0)  # Puntos disponibles
-    redimidos_total = db.Column(db.Integer, nullable=False, default=0)  # Puntos redimidos
-    actualizado_en = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())  # Última actualización
+# Modelo para la tabla Puntos
+class Puntos(db.Model):
+    __tablename__ = 'Puntos'
+
+    puntos_total = db.Column('PuntosTotal', db.Integer, primary_key=True)
+    redimidos = db.Column('Redimidos', db.Integer)
+    ofertas = db.Column('Ofertas', db.Integer)
+    puntos_gastados = db.Column('PuntosGastados', db.Integer)
 
     def __repr__(self):
-        return f"<PuntosBalance Usuario {self.id_usuario}, Puntos {self.puntos_total}>"
+        return f"<Puntos {self.puntos_total}, Redimidos {self.redimidos}>"
+
+# Modelo para la tabla PuntosBalance
+class PuntosBalance(db.Model):
+    __tablename__ = 'Puntos_Balance'
+
+    user_id = db.Column(db.Integer, primary_key=True)
+    puntos_total = db.Column(db.Integer, nullable=False, default=0)
+    redimidos_total = db.Column(db.Integer, nullable=False, default=0)
+
+    def __repr__(self):
+        return f"<PuntosBalance user_id={self.user_id}, puntos_total={self.puntos_total}, redimidos_total={self.redimidos_total}>"
 
 # Modelo para la tabla Menu_Objetos
 class MenuObjetos(db.Model):
@@ -65,19 +67,35 @@ class MenuObjetos(db.Model):
 
 # Modelo para la tabla Orden
 class Orden(db.Model):
-    __tablename__ = 'Orden'  # Nombre de la tabla en la base de datos
+    __tablename__ = 'Orden'
 
-    id_transaccion = db.Column(db.Integer, primary_key=True)  # Clave primaria
-    id_usuario = db.Column(db.Integer, db.ForeignKey('Usuarios.id_usuario'), nullable=False)  # Clave foránea a Usuarios
-    id_delivery_address = db.Column(db.Integer, db.ForeignKey('Address.id_address'), nullable=False)  # Clave foránea a Address
-    precio_total = db.Column(db.Numeric(10, 2), nullable=True)  # Precio total de la orden
-    puntos_gastados = db.Column(db.Integer, nullable=True, default=0)  # Puntos redimidos
-    puntos_ganados = db.Column(db.Integer, nullable=True, default=0)  # Puntos ganados
-    fecha_orden = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())  # Fecha de la orden
-    estado_entrega = db.Column(db.Integer, nullable=False, default=1)  # 1: Preparando, 2: En camino, 3: Entregado
+    id_transaccion = db.Column('Id_Transaccion', db.Integer, primary_key=True)
+    id_usuario = db.Column('Id_Usuario', db.Integer, nullable=False)
+    puntos = db.Column('Puntos', db.Integer, nullable=False)
+    address = db.Column('Address', db.String(45), nullable=False)
+    objetos = db.Column('Objetos', db.Integer, nullable=False)
+
+    # Corrected composite foreign key linking to Usuarios and Address
+    __table_args__ = (
+        db.ForeignKeyConstraint(
+            ['id_usuario', 'puntos'],
+            ['usuarios.Id_Usuario', 'usuarios.Puntos']
+        ),
+        db.ForeignKeyConstraint(
+            ['address'],
+            ['Address.address']
+        ),
+        db.ForeignKeyConstraint(
+            ['objetos'],
+            ['Menu_Objetos.id_objeto']
+        ),
+    )
+
+    # Relationships
+    menu_objeto = db.relationship('MenuObjetos', backref='ordenes')
 
     def __repr__(self):
-        return f"<Orden {self.id_transaccion} for Usuario {self.id_usuario}, Estado {self.estado_entrega}>"
+        return f"<Orden {self.id_transaccion} for Usuario {self.id_usuario}>"
 
 # Modelo para la tabla Orden_Items
 class OrdenItems(db.Model):

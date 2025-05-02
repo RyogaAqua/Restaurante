@@ -1,4 +1,4 @@
-from ..models import Address, Usuario  # Import relativo
+from ..models import Address, Usuarios  # Import relativo
 from ..extensions import db  # Import relativo
 
 """
@@ -38,7 +38,7 @@ class AddressService:
             db.session.flush()  # Asegura que la dirección tenga un ID antes de usarla
 
             # Asociar la dirección al usuario
-            user = Usuario.query.get(user_id)
+            user = Usuarios.query.get(user_id)
             if not user:
                 raise ValueError("Usuario no encontrado.")
             user.id_address = new_address.id_address
@@ -63,7 +63,7 @@ class AddressService:
             ValueError: Si ocurre un error al listar las direcciones.
         """
         try:
-            user = Usuario.query.get(user_id)
+            user = Usuarios.query.get(user_id)
             if not user:
                 raise ValueError("Usuario no encontrado.")
 
