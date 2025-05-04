@@ -1,7 +1,6 @@
 from flask import Flask, send_from_directory, jsonify, render_template
 from flask_migrate import Migrate
-from Logica.app.extensions import db
-from .extensions import cors
+from .extensions import cors, db  # Importar la instancia de SQLAlchemy
 from .config import Config
 from .routes import register_routes  # Importar la función para registrar rutas
 from .routes import (
@@ -21,6 +20,16 @@ from .routes import (
 import os
 import logging
 from flask.cli import with_appcontext
+
+# Configurar logging detallado para Werkzeug
+werkzeug_logger = logging.getLogger('werkzeug')
+werkzeug_logger.setLevel(logging.INFO)
+
+# Asegurarse de que Werkzeug registre las solicitudes HTTP
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Registrar un mensaje al iniciar el servidor
+logging.info("Werkzeug logging configurado para registrar solicitudes HTTP.")
 
 migrate = Migrate()
 
@@ -44,7 +53,6 @@ def create_app():
     app.config.from_object(Config)
 
     # Inicializa las extensiones
-    db.init_app(app)
     migrate.init_app(app, db)  # Registrar Flask-Migrate con la aplicación y la base de datos
     cors.init_app(app, resources={r"/*": {"origins": "*"}})  # Permitir todas las solicitudes de origen cruzado
 

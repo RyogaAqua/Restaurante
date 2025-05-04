@@ -1,54 +1,54 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy import func  # Importa func para usar sa.func.now()
-from .database import Base
+from .database import db
 
-class Address(Base):
-    __tablename__ = 'address'
+class Address(db.Model):
+    __tablename__ = 'Address'
 
-    Id_Address = Column(Integer, primary_key=True, autoincrement=True, comment='Unique identifier for the address')
-    Address = Column(String(255), nullable=False, comment='Street address line(s)')
-    Zip_Code = Column(String(20), comment='Postal or Zip code')
-    State = Column(String(100), comment='State, Province, or Region')
-    Country = Column(String(100), comment='Country')
-    City = Column(String(100), comment='City or Town')
+    Id_Address = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    Address = db.Column(db.String(255), nullable=False)
+    Zip_Code = db.Column(db.String(20), nullable=True)
+    State = db.Column(db.String(100), nullable=True)
+    Country = db.Column(db.String(100), nullable=True)
+    City = db.Column(db.String(100), nullable=True)
 
-    # Relación inversa con Usuarios y Orden
-    usuarios = relationship('Usuarios', back_populates='address')
-    ordenes = relationship('Orden', back_populates='address')
-
-
-class Usuarios(Base):
-    __tablename__ = 'usuarios'
-
-    Id_Usuario = Column(Integer, primary_key=True, autoincrement=True, comment='Unique identifier for the user')
-    Nombre_Usuario = Column(String(45), nullable=False, comment="User's first name")
-    Apellido_Usuario = Column(String(45), nullable=False, comment="User's last name")
-    Email = Column(String(100), nullable=False, unique=True, comment="User's email address (must be unique)")
-    Telefono = Column(String(25), unique=True, comment="User's phone number (must be unique if provided)")
-    Hash_Contrasena_Usuario = Column(String(255), comment="Hashed user password")
-    Fecha_Ingresada = Column(DateTime, server_default=func.now(), comment="Date and time when the user account was created")
-    MetodoDePago = Column(String(45), comment="Preferred payment method information")
-    Id_Address = Column(Integer, ForeignKey('address.Id_Address'), comment="Foreign key to the user's default address in the Address table")
-
-    # Relación con Address y Puntos_Balance
-    address = relationship('Address', back_populates='usuarios')
-    puntos_balance = relationship('PuntosBalance', uselist=False, back_populates='usuario')
+    def __repr__(self):
+        return f"<Address(Id_Address={self.Id_Address}, Address='{self.Address}', City='{self.City}')>"
 
 
-class PuntosBalance(Base):
-    __tablename__ = 'puntos_balance'
+class Usuarios(db.Model):
+    __tablename__ = 'Usuarios'
 
-    Id_Usuario = Column(Integer, ForeignKey('usuarios.Id_Usuario'), primary_key=True, comment='Foreign key linking to the user; also Primary Key')
-    Puntos_Total = Column(Integer, nullable=False, default=0, comment='Current available points balance')
-    Redimidos_Total = Column(Integer, nullable=False, default=0, comment='Lifetime total points redeemed by the user')
-    Actualizado_En = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now(), comment='Timestamp of the last balance update')
+    Id_Usuario = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    Nombre_Usuario = db.Column(db.String(45), nullable=False)
+    Apellido_Usuario = db.Column(db.String(45), nullable=False)
+    Email = db.Column(db.String(100), unique=True, nullable=False)
+    Telefono = db.Column(db.String(25), unique=True, nullable=True)
+    Hash_Contrasena_Usuario = db.Column(db.String(255), nullable=True)
+    Fecha_Ingresada = db.Column(db.DateTime, nullable=True, default=db.func.current_timestamp())
+    MetodoDePago = db.Column(db.String(45), nullable=True)
+    Id_Address = db.Column(db.Integer, db.ForeignKey('Address.Id_Address'), nullable=True)
 
-    # Relación con Usuarios
-    usuario = relationship('Usuarios', back_populates='puntos_balance')
+    puntos_balance = db.relationship('PuntosBalance', back_populates='usuario', uselist=False)
+    ordenes = db.relationship('Orden', back_populates='usuario')  # Relación con Orden
+
+    def __repr__(self):
+        return f"<Usuarios(Id_Usuario={self.Id_Usuario}, Email='{self.Email}')>"
 
 
-class MenuObjetos(Base):
+class PuntosBalance(db.Model):
+    __tablename__ = 'Puntos_Balance'
+
+    Id_Usuario = db.Column(db.Integer, db.ForeignKey('Usuarios.Id_Usuario'), primary_key=True, nullable=False)
+    Puntos_Total = db.Column(db.Integer, nullable=False, default=0)
+    Redimidos_Total = db.Column(db.Integer, nullable=False, default=0)
+    Actualizado_En = db.Column(db.TIMESTAMP, nullable=False, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    usuario = db.relationship('Usuarios', back_populates='puntos_balance')
+
+
+class MenuObjetos(db.Model):
     __tablename__ = 'menu_objetos'
 
     Id_Objeto = Column(Integer, primary_key=True, autoincrement=True, comment='Unique identifier for the menu item')
@@ -62,28 +62,27 @@ class MenuObjetos(Base):
     orden_items = relationship('OrdenItems', back_populates='menu_objeto')
 
 
-class Orden(Base):
-    __tablename__ = 'orden'
+class Orden(db.Model):
+    __tablename__ = 'Orden'
 
-    Id_Orden = Column(Integer, primary_key=True, autoincrement=True, comment='Unique identifier for the order transaction')
-    Id_Usuario = Column(Integer, ForeignKey('usuarios.Id_Usuario'), nullable=False, comment='Foreign key linking to the user who placed the order')
-    Id_Delivery_Address = Column(Integer, ForeignKey('address.Id_Address'), nullable=False, comment='Foreign key linking to the address for this specific order delivery')
-    Precio_Total = Column(Float, comment='Calculated total price for the order')
-    Puntos_Gastados = Column(Integer, default=0, comment='Points redeemed by the user for this order')
-    Puntos_Ganados = Column(Integer, default=0, comment='Points earned by the user from this order')
-    Fecha_Orden = Column(DateTime, nullable=False, server_default=func.now(), comment='Date and time when the order was placed')
+    Id_Orden = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    Id_Usuario = db.Column(db.Integer, db.ForeignKey('Usuarios.Id_Usuario'), nullable=False)
+    Id_Delivery_Address = db.Column(db.Integer, db.ForeignKey('Address.Id_Address'), nullable=False)
+    Precio_Total = db.Column(db.Numeric(10, 2), nullable=True)
+    Puntos_Gastados = db.Column(db.Integer, nullable=True, default=0)
+    Puntos_Ganados = db.Column(db.Integer, nullable=True, default=0)
+    Fecha_Orden = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
 
-    # Relación con Usuarios, Address y OrdenItems
-    usuario = relationship('Usuarios')
-    address = relationship('Address', back_populates='ordenes')
+    usuario = db.relationship('Usuarios', back_populates='ordenes')  # Relación con Usuarios
+    delivery_address = db.relationship('Address')  # Relación con Address
     orden_items = relationship('OrdenItems', back_populates='orden')
 
 
-class OrdenItems(Base):
+class OrdenItems(db.Model):
     __tablename__ = 'orden_items'
 
     Id_Orden_Item = Column(Integer, primary_key=True, autoincrement=True, comment='Unique identifier for this specific line item in an order')
-    Id_Orden = Column(Integer, ForeignKey('orden.Id_Orden'), nullable=False, comment='Foreign key linking to the order header')
+    Id_Orden = Column(Integer, ForeignKey('Orden.Id_Orden'), nullable=False, comment='Foreign key linking to the order header')
     Id_Objeto = Column(Integer, ForeignKey('menu_objetos.Id_Objeto'), nullable=False, comment='Foreign key linking to the menu item ordered')
     Quantity = Column(Integer, nullable=False, default=1, comment='Number of this specific item ordered')
     Precio_Unitario_Congelado = Column(Float, nullable=False, comment='Price of the item unit at the time the order was placed')

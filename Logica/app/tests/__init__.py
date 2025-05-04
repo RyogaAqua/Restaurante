@@ -9,7 +9,7 @@ import pytest
 from app import create_app
 from app.extensions import db
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def app():
     """
     Crea una instancia de la aplicación Flask configurada para pruebas.
@@ -20,7 +20,7 @@ def app():
     app = create_app()
     app.config.update({
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",  # Base de datos en memoria para pruebas
+        "SQLALCHEMY_DATABASE_URI": "mysql+mysqlconnector://root:2016@localhost/mydb",  # Usar MySQL para pruebas
         "SQLALCHEMY_TRACK_MODIFICATIONS": False
     })
 

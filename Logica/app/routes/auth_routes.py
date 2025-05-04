@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify, render_template
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..services.auth_service import AuthService  # Cambiar a import relativo
-from ..extensions import db
-from Logica.app.models import Usuarios, Address
-from Logica.app.utils.security import hash_password  # Importar función para hashear contraseñas
+from ..database import db  # Cambiar a usar el db de database.py
+from ..models import Usuarios, Address, PuntosBalance  # Cambiar a import relativo
+from ..utils.security import hash_password  # Cambiar a import relativo
 import logging
 
 """
@@ -57,57 +57,76 @@ def signin():
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
+    """
+    Maneja el registro de nuevos usuarios.
+    """
     try:
-        logging.info("Received registration request")
-        data = request.get_json()
-        logging.info(f"Request data: {data}")
+        data = request.get_json()  # Asegúrate de usar get_json para procesar JSON
+        logging.info(f"Datos recibidos en la solicitud: {data}")
 
-        # Validar y procesar los datos enviados desde el frontend
-        required_fields = ['nombre_usuario', 'apellido_usuario', 'email', 'telefono', 'contrasena', 'metodo_pago', 'address']
+        # Verificar si faltan campos requeridos
+        required_fields = ['first_name', 'last_name', 'email', 'phone', 'password', 'address', 'city', 'state', 'zip_code', 'country']
         for field in required_fields:
-            if field not in data:
-                logging.error(f"Missing field: {field}")
-                return jsonify({'error': f'Missing field: {field}'}), 400
+            if not data.get(field):  # Verifica si el campo está presente y no es None
+                raise ValueError(f"El campo '{field}' es obligatorio.")
 
-        # Validar dirección
-        address_data = data['address']
-        if not isinstance(address_data, dict):
-            logging.error("Invalid address format")
-            return jsonify({'error': 'Invalid address format'}), 400
+        # Verificar si el usuario ya existe
+        if Usuarios.query.filter_by(Email=data['email']).first():
+            logging.warning("El usuario ya existe en la base de datos.")
+            return jsonify({"message": "El usuario ya existe"}), 400
 
-        # Crear o verificar la dirección
-        address = Address.query.filter_by(AddressLine=address_data['address']).first()
+        # Crear una nueva dirección si no existe
+        address = Address.query.filter_by(
+            Address=data['address'],
+            City=data['city'],
+            State=data['state'],
+            Zip_Code=data['zip_code'],
+            Country=data['country']
+        ).first()
+
         if not address:
+            logging.info("Creando una nueva dirección en la base de datos.")
             address = Address(
-                AddressLine=address_data['address'],
-                zip_code=address_data.get('zip_code'),
-                state=address_data.get('state'),
-                country=address_data.get('country'),
-                city=address_data.get('city')
+                Address=data['address'],
+                City=data['city'],
+                State=data['state'],
+                Zip_Code=data['zip_code'],
+                Country=data['country']
             )
             db.session.add(address)
-            db.session.flush()
+            db.session.commit()
 
-        # Crear usuario con contraseña hasheada
-        hashed_password = hash_password(data['contrasena'])
-        new_user = Usuarios(
-            nombre_usuario=data['nombre_usuario'],
-            apellido_usuario=data['apellido_usuario'],
-            email=data['email'],
-            telefono=data['telefono'],
-            hash_contrasena_usuario=hashed_password,  # Contraseña hasheada
-            metodo_de_pago=data['metodo_pago'],
-            id_address=address.id_address
+        # Crear un nuevo usuario
+        logging.info("Creando un nuevo usuario en la base de datos.")
+        user = Usuarios(
+            Nombre_Usuario=data['first_name'],
+            Apellido_Usuario=data['last_name'],
+            Email=data['email'],
+            Telefono=data['phone'],
+            Hash_Contrasena_Usuario=generate_password_hash(data['password']),
+            Id_Address=address.Id_Address
         )
-        db.session.add(new_user)
+        db.session.add(user)
+        db.session.commit()  # Commit para obtener el Id_Usuario generado
+
+        # Crear el balance de puntos para el usuario
+        logging.info("Creando el balance de puntos para el usuario.")
+        puntos_balance = PuntosBalance(
+            Id_Usuario=user.Id_Usuario,
+            Puntos_Total=0,
+            Redimidos_Total=0
+        )
+        db.session.add(puntos_balance)
         db.session.commit()
 
-        logging.info("User registered successfully")
-        return jsonify({'message': 'User registered successfully'}), 201
+        logging.info("Usuario registrado exitosamente.")
+        return jsonify({"message": "User registered successfully"}), 201
+    except ValueError as ve:
+        logging.error(f"Error durante el registro: {ve}")
+        return jsonify({"error": str(ve)}), 400
     except Exception as e:
-        logging.error(f"Error during registration: {str(e)}")
-        db.session.rollback()
-        return jsonify({'error': 'Ocurrió un error al registrar el usuario. Por favor, inténtalo de nuevo.'}), 500
+        logging.error(f"Error durante el registro: {e}", exc_info=True)
+        return jsonify({"error": "Registration failed"}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():

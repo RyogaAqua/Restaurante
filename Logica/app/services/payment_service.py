@@ -1,6 +1,6 @@
 import logging
-from ..models import Orden  # Ensure only valid models are imported
-from ..extensions import db  # Cambiar a import relativo
+from ..models import Orden, OrdenItems, Usuarios, PuntosBalance  # Modelos basados en RestauranteWKDB.sql
+from ..extensions import db  # Import relativo correcto
 
 """
 Este módulo contiene la lógica para manejar los pagos, incluyendo el procesamiento,
@@ -161,7 +161,7 @@ class PaymentService:
 
             for order in orders:
                 payment_history.append({
-                    "order_id": order.id_transaccion,
+                    "order_id": order.id_orden,
                     "total_price": float(order.precio_total),
                     "payment_date": order.fecha_orden.strftime('%Y-%m-%d %H:%M:%S'),
                     "points_earned": order.puntos_ganados,

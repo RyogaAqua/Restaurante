@@ -1,5 +1,6 @@
 import logging
-from ..extensions import db  # Import relativo correcto
+from ..extensions import db
+from ..models import PuntosBalance  # Asegúrate de que el modelo esté definido correctamente
 
 """
 Este módulo contiene la lógica para manejar el sistema de recompensas,
@@ -16,10 +17,11 @@ class RewardService:
         """
         Inicializa el servicio de recompensas y define las recompensas disponibles.
         """
-        # Definir recompensas (considerar mover esto a una base de datos para mayor escalabilidad)
+        # Definir recompensas basadas en puntos
         self.rewards = {
             "free_burger": 100,  # Requiere 100 puntos para una hamburguesa gratis
             "free_fries": 50,    # Requiere 50 puntos para papas fritas gratis
+            "free_drink": 30     # Requiere 30 puntos para una bebida gratis
         }
 
     def get_available_rewards(self, user_id):
@@ -36,11 +38,12 @@ class RewardService:
             ValueError: Si ocurre un error al recuperar las recompensas.
         """
         try:
-            puntos_balance = PuntosBalance.query.get(user_id)  # Recupera el balance de puntos por ID de usuario
+            # Recuperar el balance de puntos del usuario
+            puntos_balance = PuntosBalance.query.filter_by(Id_Usuario=user_id).first()
             if not puntos_balance:
                 raise ValueError("Usuario no encontrado o sin balance de puntos.")
 
-            user_points = puntos_balance.puntos_total  # Obtiene los puntos actuales del usuario
+            user_points = puntos_balance.Puntos_Total  # Obtiene los puntos actuales del usuario
             available_rewards = []
 
             # Verifica qué recompensas están disponibles según los puntos del usuario
@@ -71,11 +74,12 @@ class RewardService:
             ValueError: Si ocurre un error durante el canje de la recompensa.
         """
         try:
-            puntos_balance = PuntosBalance.query.get(user_id)  # Recupera el balance de puntos por ID de usuario
+            # Recuperar el balance de puntos del usuario
+            puntos_balance = PuntosBalance.query.filter_by(Id_Usuario=user_id).first()
             if not puntos_balance:
                 raise ValueError("Usuario no encontrado o sin balance de puntos.")
 
-            user_points = puntos_balance.puntos_total  # Obtiene los puntos actuales del usuario
+            user_points = puntos_balance.Puntos_Total  # Obtiene los puntos actuales del usuario
 
             # Verifica si la recompensa existe
             if reward_name not in self.rewards:
@@ -88,8 +92,8 @@ class RewardService:
                 raise ValueError("Puntos insuficientes para canjear esta recompensa.")
 
             # Deduce los puntos y actualiza el registro del usuario
-            puntos_balance.puntos_total -= required_points
-            puntos_balance.redimidos_total += required_points
+            puntos_balance.Puntos_Total -= required_points
+            puntos_balance.Redimidos_Total += required_points
             db.session.commit()
 
             return {"message": f"Recompensa '{reward_name}' canjeada exitosamente."}
@@ -111,11 +115,12 @@ class RewardService:
             ValueError: Si ocurre un error al recuperar los puntos del usuario.
         """
         try:
-            puntos_balance = PuntosBalance.query.get(user_id)  # Recupera el balance de puntos por ID de usuario
+            # Recuperar el balance de puntos del usuario
+            puntos_balance = PuntosBalance.query.filter_by(Id_Usuario=user_id).first()
             if not puntos_balance:
                 raise ValueError("Usuario no encontrado o sin balance de puntos.")
             
-            return puntos_balance.puntos_total
+            return puntos_balance.Puntos_Total
         except Exception as e:
             logging.error(f"Error al recuperar los puntos para el usuario {user_id}: {e}")
             raise ValueError("Ocurrió un error al recuperar los puntos del usuario.")
@@ -135,14 +140,15 @@ class RewardService:
             ValueError: Si ocurre un error al actualizar los puntos del usuario.
         """
         try:
-            puntos_balance = PuntosBalance.query.get(user_id)  # Recupera el balance de puntos por ID de usuario
+            # Recuperar el balance de puntos del usuario
+            puntos_balance = PuntosBalance.query.filter_by(Id_Usuario=user_id).first()
             if not puntos_balance:
                 raise ValueError("Usuario no encontrado o sin balance de puntos.")
             
-            puntos_balance.puntos_total += points
+            puntos_balance.Puntos_Total += points
             db.session.commit()
 
-            return puntos_balance.puntos_total
+            return puntos_balance.Puntos_Total
         except Exception as e:
             logging.error(f"Error al actualizar los puntos para el usuario {user_id}: {e}")
             raise ValueError("Ocurrió un error al actualizar los puntos del usuario.")

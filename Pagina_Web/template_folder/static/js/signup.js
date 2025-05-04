@@ -5,19 +5,16 @@ document.getElementById('signup-form').addEventListener('submit', async (event) 
     event.preventDefault(); // Evita que el formulario se envíe de forma predeterminada
 
     const formData = {
-        nombre_usuario: document.getElementById('nombre_usuario').value,
-        apellido_usuario: document.getElementById('apellido_usuario').value,
+        first_name: document.getElementById('first_name').value,
+        last_name: document.getElementById('last_name').value,
         email: document.getElementById('email').value,
-        telefono: document.getElementById('telefono').value,
-        contrasena: document.getElementById('contrasena').value,
-        metodo_pago: document.getElementById('metodo_pago').value,
-        address: {
-            address: document.getElementById('address').value,
-            city: document.getElementById('city').value,
-            state: document.getElementById('state').value,
-            zip_code: document.getElementById('zip_code').value,
-            country: document.getElementById('country').value
-        }
+        phone: document.getElementById('phone').value,
+        password: document.getElementById('password').value,
+        address: document.getElementById('address').value,
+        city: document.getElementById('city').value,
+        state: document.getElementById('state').value,
+        zip_code: document.getElementById('zip_code').value,
+        country: document.getElementById('country').value
     };
 
     try {
@@ -29,16 +26,14 @@ document.getElementById('signup-form').addEventListener('submit', async (event) 
             body: JSON.stringify(formData)
         });
 
-        if (response.ok) {
-            const result = await response.json();
-            alert(result.message);
-            window.location.href = 'signin.html'; // Redirige al inicio de sesión
+        const result = await response.json();
+        if (response.status === 201) {
+            alert('User registered successfully!');
         } else {
-            const error = await response.json();
-            alert(`Error: ${error.error}`);
+            alert(result.error || 'Registration failed.');
         }
-    } catch (err) {
-        console.error('Error al registrar el usuario:', err);
-        alert('Ocurrió un error al registrar el usuario. Por favor, inténtalo de nuevo.');
+    } catch (error) {
+        console.error('Error during registration:', error);
+        alert('An error occurred. Please try again.');
     }
 });
