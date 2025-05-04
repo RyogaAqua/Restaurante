@@ -234,3 +234,32 @@ class AuthService:
             db.session.commit()
         except Exception as e:
             raise ValueError("El token es inválido o ha expirado.")
+
+    def login_user(self, email, password):
+        """
+        Autentica a un usuario verificando su correo electrónico y contraseña.
+
+        Args:
+            email (str): Correo electrónico del usuario.
+            password (str): Contraseña del usuario.
+
+        Returns:
+            str: Token de autenticación si las credenciales son válidas.
+
+        Raises:
+            ValueError: Si las credenciales son inválidas o el usuario no existe.
+        """
+        from ..models import Usuario  # Importación diferida para evitar dependencia circular
+
+        # Buscar al usuario por correo electrónico
+        user = Usuario.query.filter_by(email=email).first()
+        if not user:
+            raise ValueError("Usuario no encontrado.")
+
+        # Verificar la contraseña
+        if not check_password_hash(user.hash_contrasena_usuario, password):
+            raise ValueError("Contraseña incorrecta.")
+
+        # Generar un token de autenticación (simulado aquí, reemplazar con JWT real si es necesario)
+        token = f"fake-token-for-{user.id_usuario}"
+        return token

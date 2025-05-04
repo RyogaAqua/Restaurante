@@ -19,6 +19,7 @@ from .routes import (
 )
 import os
 import logging
+import traceback
 from flask.cli import with_appcontext
 
 # Configurar logging detallado para Werkzeug
@@ -55,6 +56,9 @@ def create_app():
     # Inicializa las extensiones
     migrate.init_app(app, db)  # Registrar Flask-Migrate con la aplicación y la base de datos
     cors.init_app(app, resources={r"/*": {"origins": "*"}})  # Permitir todas las solicitudes de origen cruzado
+
+    # Initialize the database
+    db.init_app(app)
 
     # Registra los blueprints usando la función register_routes
     register_routes(app)
@@ -101,6 +105,7 @@ def register_error_handlers(app):
             dict: Un mensaje de error en formato JSON.
             int: Código de estado HTTP 404.
         """
+        logging.error(f"404 Error: {error}")
         return {"error": "Recurso no encontrado"}, 404
 
     @app.errorhandler(500)
@@ -115,6 +120,7 @@ def register_error_handlers(app):
             dict: Un mensaje de error en formato JSON.
             int: Código de estado HTTP 500.
         """
+        logging.error(f"500 Error: {error}\n{traceback.format_exc()}")
         return {"error": "Ocurrió un error interno"}, 500
 
 # Asegúrate de que Flask CLI pueda reconocer el contexto de la aplicación

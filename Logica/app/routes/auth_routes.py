@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..services.auth_service import AuthService  # Cambiar a import relativo
-from ..database import db  # Cambiar a usar el db de database.py
+from ..extensions import db  # Use the db instance from extensions.py
 from ..models import Usuarios, Address, PuntosBalance  # Cambiar a import relativo
 from ..utils.security import hash_password  # Cambiar a import relativo
 import logging
@@ -43,17 +43,33 @@ def signup():
 
 @auth_bp.route('/signin', methods=['POST'])
 def signin():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
 
-    # Busca al usuario por email
-    usuario = Usuarios.query.filter_by(Email=email).first()
-    if not usuario or not check_password_hash(usuario.Hash_Contrasena_Usuario, password):
-        return jsonify({"message": "Credenciales inválidas"}), 401
+        if not email or not password:
+            logging.error("El campo 'email' o 'password' está vacío.")
+            return jsonify({"error": "Email y contraseña son obligatorios."}), 400
 
-    # Genera un token (puedes usar Flask-JWT-Extended aquí)
-    return jsonify({"message": "Inicio de sesión exitoso", "user_id": usuario.Id_Usuario}), 200
+        # Busca al usuario por email
+        usuario = Usuarios.query.filter_by(Email=email).first()
+        if not usuario:
+            logging.warning(f"Usuario con email {email} no encontrado.")
+            return jsonify({"error": "Credenciales inválidas."}), 401
+
+        # Verifica la contraseña
+        if not check_password_hash(usuario.Hash_Contrasena_Usuario, password):
+            logging.warning("Contraseña incorrecta para el usuario.")
+            return jsonify({"error": "Credenciales inválidas."}), 401
+
+        # Genera un token (puedes usar Flask-JWT-Extended aquí)
+        logging.info(f"Usuario {email} inició sesión exitosamente.")
+        return jsonify({"message": "Inicio de sesión exitoso", "user_id": usuario.Id_Usuario}), 200
+
+    except Exception as e:
+        logging.error(f"Error durante el inicio de sesión: {e}\nDatos ingresados: email={data.get('email')}, password={'*' * len(data.get('password', ''))}", exc_info=True)
+        return jsonify({"error": "Ocurrió un error inesperado."}), 500
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -65,13 +81,14 @@ def register():
         logging.info(f"Datos recibidos en la solicitud: {data}")
 
         # Verificar si faltan campos requeridos
-        required_fields = ['first_name', 'last_name', 'email', 'phone', 'password', 'address', 'city', 'state', 'zip_code', 'country']
+        required_fields = ['Nombre_Usuario', 'Apellido_Usuario', 'Email', 'Telefono', 'Hash_Contrasena_Usuario', 'address', 'city', 'state', 'zip_code', 'country', 'MetodoDePago']
         for field in required_fields:
             if not data.get(field):  # Verifica si el campo está presente y no es None
+                logging.error(f"El campo '{field}' es obligatorio y no fue proporcionado.")
                 raise ValueError(f"El campo '{field}' es obligatorio.")
 
         # Verificar si el usuario ya existe
-        if Usuarios.query.filter_by(Email=data['email']).first():
+        if Usuarios.query.filter_by(Email=data['Email']).first():
             logging.warning("El usuario ya existe en la base de datos.")
             return jsonify({"message": "El usuario ya existe"}), 400
 
@@ -99,11 +116,13 @@ def register():
         # Crear un nuevo usuario
         logging.info("Creando un nuevo usuario en la base de datos.")
         user = Usuarios(
-            Nombre_Usuario=data['first_name'],
-            Apellido_Usuario=data['last_name'],
-            Email=data['email'],
-            Telefono=data['phone'],
-            Hash_Contrasena_Usuario=generate_password_hash(data['password']),
+            Nombre_Usuario=data['Nombre_Usuario'],
+            Apellido_Usuario=data['Apellido_Usuario'],
+            Email=data['Email'],
+            Telefono=data['Telefono'],
+            Hash_Contrasena_Usuario=generate_password_hash(data['Hash_Contrasena_Usuario']),
+            Fecha_Ingresada=db.func.now(),  # Fecha actual
+            MetodoDePago=data['MetodoDePago'],
             Id_Address=address.Id_Address
         )
         db.session.add(user)

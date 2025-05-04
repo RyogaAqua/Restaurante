@@ -38,30 +38,30 @@
             <h2>Create Your Account</h2>
             <p class="auth-subtitle">Please fill in the details to sign up</p>
 
-            <form id="signup-form" class="auth-form">
+            <form id="signup-form" class="auth-form" action="/auth/register" method="POST">
                 <div class="form-group">
-                    <label for="nombre_usuario">First Name</label>
-                    <input type="text" id="nombre_usuario" name="nombre_usuario" required>
+                    <label for="Nombre_Usuario">First Name</label>
+                    <input type="text" id="Nombre_Usuario" name="Nombre_Usuario" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="apellido_usuario">Last Name</label>
-                    <input type="text" id="apellido_usuario" name="apellido_usuario" required>
+                    <label for="Apellido_Usuario">Last Name</label>
+                    <input type="text" id="Apellido_Usuario" name="Apellido_Usuario" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
+                    <label for="Email">Email</label>
+                    <input type="email" id="Email" name="Email" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="telefono">Phone</label>
-                    <input type="text" id="telefono" name="telefono" required>
+                    <label for="Telefono">Phone</label>
+                    <input type="text" id="Telefono" name="Telefono" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="contrasena">Password</label>
-                    <input type="password" id="contrasena" name="contrasena" required>
+                    <label for="Hash_Contrasena_Usuario">Password</label>
+                    <input type="password" id="Hash_Contrasena_Usuario" name="Hash_Contrasena_Usuario" required>
                 </div>
 
                 <div class="form-group">
@@ -90,8 +90,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="metodo_pago">Payment Method</label>
-                    <select id="metodo_pago" name="metodo_pago">
+                    <label for="MetodoDePago">Payment Method</label>
+                    <select id="MetodoDePago" name="MetodoDePago">
                         <option value="credit_card">Credit Card</option>
                         <option value="paypal">PayPal</option>
                         <option value="cash">Cash</option>
@@ -108,5 +108,34 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/signup.js') }}"></script>
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Evitar el envío predeterminado del formulario
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('User registered successfully!');
+                } else {
+                    alert(`Error: ${result.error || result.message}`);
+                }
+            } catch (error) {
+                alert('An unexpected error occurred. Please try again later.');
+                console.error('Error:', error);
+            }
+        });
+    </script>
 </body>
 </html>

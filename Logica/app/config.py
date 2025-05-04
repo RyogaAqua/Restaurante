@@ -3,7 +3,7 @@ from .database import init_app, db  # Cambiar a usar database.py para la configu
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'default-secret-key')
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URI', 'mysql+mysqlconnector://root:2016@localhost/restaurantewk')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URI', 'mysql+mysqlconnector://root:2016@localhost/mydb')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Configuración específica para el entorno de desarrollo.

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy import func  # Importa func para usar sa.func.now()
-from .database import db
+from .extensions import db
 
 class Address(db.Model):
     __tablename__ = 'Address'

@@ -276,9 +276,25 @@ if (signinForm) {
         const email = this.querySelector('#email').value;
         const password = this.querySelector('#password').value;
 
-        // Here you would typically send this to your backend
-        console.log('Login attempt:', { email, password });
-        showNotification('Login successful!');
+        fetch('/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Login failed');
+            }
+            return response.json();
+        })
+        .then(data => {
+            showNotification('Login successful!', 'success');
+        })
+        .catch(error => {
+            showNotification('Login failed. Please check your credentials.', 'error');
+        });
     });
 
     // Password visibility toggle
