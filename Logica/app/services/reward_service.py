@@ -1,5 +1,4 @@
 import logging
-from ..models import PuntosBalance  # Actualizado para usar la tabla Puntos_Balance
 from ..extensions import db  # Import relativo correcto
 
 """

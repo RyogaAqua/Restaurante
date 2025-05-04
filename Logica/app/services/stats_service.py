@@ -1,4 +1,4 @@
-from ..models import Orden, PuntosBalance  # Import relativo
+from ..models import Orden  # Ensure only valid models are imported
 from sqlalchemy.sql import func
 
 """

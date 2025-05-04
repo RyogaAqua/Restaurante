@@ -5,7 +5,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 # Clase base de configuración con valores predeterminados.
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'default-secret-key')
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(BASE_DIR, '../instance/restaurante.db')}"
+    SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:2016@localhost/mydb'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Configuración específica para el entorno de desarrollo.

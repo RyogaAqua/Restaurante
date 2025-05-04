@@ -17,11 +17,11 @@ def create_app():
     Returns:
         app (Flask): La instancia de la aplicación Flask configurada.
     """
-    # Configura Flask para usar PaginaWeb2 como base para plantillas y archivos estáticos
+    # Configura Flask para usar template_folder como base para plantillas y archivos estáticos
     app = Flask(
         __name__,
-        static_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2', 'static'),
-        template_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2')
+        static_folder=os.path.join('..', '..', 'Pagina_Web', 'template_folder', 'static'),
+        template_folder=os.path.join('..', '..', 'Pagina_Web', 'template_folder')
     )
 
     # Load configuration

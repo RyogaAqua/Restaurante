@@ -1,5 +1,5 @@
 import logging
-from ..models import Orden, MenuObjetos, Usuarios, Address, OrdenItems  # Cambiar a import relativo
+from ..models import Orden, MenuObjetos, Usuarios, Address  # Removed OrdenItems as it does not exist
 from ..extensions import db  # Import relativo correcto
 from ..services.reward_service import RewardService  # Cambiar a import relativo
 

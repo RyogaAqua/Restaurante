@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, render_template
+from werkzeug.security import generate_password_hash, check_password_hash
 from ..services.auth_service import AuthService  # Cambiar a import relativo
 from ..extensions import db
-from Logica.app.models import Usuarios, Address, Puntos
+from Logica.app.models import Usuarios, Address
 from Logica.app.utils.security import hash_password  # Importar función para hashear contraseñas
 import logging
 
@@ -13,6 +14,46 @@ incluyendo el inicio de sesión y el registro de nuevos usuarios.
 # Crear un blueprint para las rutas de autenticación
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 auth_service = AuthService()  # Instanciar el servicio de autenticación
+
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    nombre = data.get('nombre')
+    apellido = data.get('apellido')
+
+    # Verifica si el usuario ya existe
+    if Usuarios.query.filter_by(Email=email).first():
+        return jsonify({"message": "El usuario ya existe"}), 400
+
+    # Crea un nuevo usuario
+    hashed_password = generate_password_hash(password)
+    nuevo_usuario = Usuarios(
+        Nombre_Usuario=nombre,
+        Apellido_Usuario=apellido,
+        Email=email,
+        Hash_Contrasena_Usuario=hashed_password
+    )
+    db.session.add(nuevo_usuario)
+    db.session.commit()
+
+    return jsonify({"message": "Usuario creado exitosamente"}), 201
+
+
+@auth_bp.route('/signin', methods=['POST'])
+def signin():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    # Busca al usuario por email
+    usuario = Usuarios.query.filter_by(Email=email).first()
+    if not usuario or not check_password_hash(usuario.Hash_Contrasena_Usuario, password):
+        return jsonify({"message": "Credenciales inválidas"}), 401
+
+    # Genera un token (puedes usar Flask-JWT-Extended aquí)
+    return jsonify({"message": "Inicio de sesión exitoso", "user_id": usuario.Id_Usuario}), 200
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -35,10 +76,10 @@ def register():
             return jsonify({'error': 'Invalid address format'}), 400
 
         # Crear o verificar la dirección
-        address = Address.query.filter_by(address=address_data['address']).first()
+        address = Address.query.filter_by(AddressLine=address_data['address']).first()
         if not address:
             address = Address(
-                address=address_data['address'],
+                AddressLine=address_data['address'],
                 zip_code=address_data.get('zip_code'),
                 state=address_data.get('state'),
                 country=address_data.get('country'),
@@ -46,11 +87,6 @@ def register():
             )
             db.session.add(address)
             db.session.flush()
-
-        # Crear puntos iniciales
-        puntos = Puntos(puntos_total=0)
-        db.session.add(puntos)
-        db.session.flush()
 
         # Crear usuario con contraseña hasheada
         hashed_password = hash_password(data['contrasena'])
@@ -61,7 +97,6 @@ def register():
             telefono=data['telefono'],
             hash_contrasena_usuario=hashed_password,  # Contraseña hasheada
             metodo_de_pago=data['metodo_pago'],
-            puntos=puntos.puntos_total,
             id_address=address.id_address
         )
         db.session.add(new_user)

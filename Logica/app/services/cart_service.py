@@ -1,4 +1,4 @@
-from ..models import CartItem, MenuObjetos  # Import relativo
+from ..models import MenuObjetos  # Ensure only valid models are imported
 from ..extensions import db  # Import relativo
 
 """

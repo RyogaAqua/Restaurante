@@ -1,5 +1,5 @@
 import logging
-from ..models import Orden, PuntosBalance  # Actualizado para usar PuntosBalance
+from ..models import Orden  # Ensure only valid models are imported
 from ..extensions import db  # Cambiar a import relativo
 
 """

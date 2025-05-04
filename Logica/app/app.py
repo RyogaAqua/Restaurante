@@ -38,8 +38,8 @@ def create_app():
     """
     app = Flask(
         __name__,
-        static_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2', 'static'),
-        template_folder=os.path.join('..', '..', 'Pagina_Web', 'PaginaWeb2')
+        static_folder=os.path.join('..', '..', 'Pagina_Web', 'template_folder', 'static'),
+        template_folder=os.path.join('..', '..', 'Pagina_Web', 'template_folder')
     )
     app.config.from_object(Config)
 

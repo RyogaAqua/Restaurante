@@ -1,4 +1,3 @@
-from ..models import Notification  # Import relativo
 from ..extensions import db  # Import relativo
 
 """
