@@ -71,6 +71,11 @@ def create_app():
     def home():
         return render_template('index.html')
 
+    # Ruta explícita para la página de registro
+    @app.route("/signup")
+    def signup():
+        return render_template('signup.html')
+
     # Ruta genérica para servir otras páginas HTML
     @app.route("/<page_name>.html")
     def render_page(page_name):
