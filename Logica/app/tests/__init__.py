@@ -6,8 +6,8 @@ unitarias y funcionales de la aplicación.
 """
 
 import pytest
-from app import create_app
-from app.extensions import db
+from Logica.app import create_app
+from Logica.app.extensions import db
 
 @pytest.fixture(scope="module")
 def app():

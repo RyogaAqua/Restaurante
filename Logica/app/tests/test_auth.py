@@ -1,28 +1,37 @@
+import os
+import sys
 import pytest
-from Logica.app import create_app
-from Logica.app.database import db  # Usar database.py para la configuración de la base de datos
-from Logica.app.models import Usuarios, Address, PuntosBalance
+from .. import create_app
+from ..models import Usuarios, Address, PuntosBalance
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from Logica.app.routes.auth_routes import auth_bp
+from werkzeug.security import generate_password_hash
+from Logica.app.extensions import db  # Use the single SQLAlchemy instance
+import unittest
+import uuid  # For generating unique test data
+import logging  # For debugging purposes
+
+# Add the root directory to PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../..')))
 
 @pytest.fixture(scope="module")
 def app():
     """
-    Configura la aplicación Flask para las pruebas.
+    Configures the Flask application for testing.
     """
     app = create_app()
     app.config.update({
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "mysql+mysqlconnector://root:2016@localhost/restaurantewk",  # Configuración de la base de datos para pruebas
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "SQLALCHEMY_TRACK_MODIFICATIONS": False
     })
 
-    # Verificar que la URI de la base de datos esté configurada
-    assert app.config["SQLALCHEMY_DATABASE_URI"] is not None, "SQLALCHEMY_DATABASE_URI no está configurada."
-
     with app.app_context():
-        db.create_all()  # Crea las tablas en la base de datos de prueba
+        db.create_all()
         yield app
         db.session.remove()
-        db.drop_all()  # Limpia las tablas después de las pruebas
+        db.drop_all()
 
 @pytest.fixture
 def client(app):
@@ -31,24 +40,24 @@ def client(app):
     """
     return app.test_client()
 
-def test_db_connection():
+def test_db_connection(app):
     """
-    Verifica que la conexión a la base de datos sea exitosa.
+    Verifies that the database connection is successful.
     """
-    try:
-        with db.engine.connect() as connection:
-            assert connection is not None, "No se pudo conectar a la base de datos."
-    except Exception as e:
-        pytest.fail(f"Error al conectar con la base de datos: {e}")
+    with app.app_context():
+        try:
+            with db.engine.connect() as connection:
+                assert connection is not None, "Database connection failed."
+        except Exception as e:
+            pytest.fail(f"Database connection error: {e}")
 
 def test_register_endpoint(client):
     """
-    Test to verify the /auth/register endpoint.
+    Test to verify the /auth/signup endpoint.
     """
-    # Sample payload for registration
     payload = {
-        "first_name": "Test",
-        "last_name": "User",
+        "nombre": "Test",
+        "apellido": "User",
         "email": "testuser@example.com",
         "phone": "1234567890",
         "password": "password123",
@@ -59,20 +68,18 @@ def test_register_endpoint(client):
         "country": "Test Country"
     }
 
-    # Send POST request to /auth/register
-    response = client.post('/auth/register', json=payload)
+    response = client.post('/auth/signup', json=payload)
 
-    # Assert the response status code and message
     assert response.status_code == 201, f"Unexpected status code: {response.status_code}"
-    assert response.json.get("message") == "User registered successfully", f"Unexpected response message: {response.json}"
+    assert response.json.get("message") == "Usuario creado exitosamente", f"Unexpected response message: {response.json}"
 
 def test_register_user(client):
     """
-    Test para verificar el endpoint /auth/register.
+    Test para verificar el endpoint /auth/signup.
     """
     payload = {
-        "first_name": "John",
-        "last_name": "Doe",
+        "nombre": "John",
+        "apellido": "Doe",
         "email": "john.doe@example.com",
         "phone": "1234567890",
         "password": "securepassword",
@@ -83,10 +90,10 @@ def test_register_user(client):
         "country": "USA"
     }
 
-    response = client.post('/auth/register', json=payload)
+    response = client.post('/auth/signup', json=payload)
 
     assert response.status_code == 201, f"Unexpected status code: {response.status_code}"
-    assert response.json.get("message") == "User registered successfully"
+    assert response.json.get("message") == "Usuario creado exitosamente"
 
     # Verificar que el usuario fue creado en la base de datos
     user = Usuarios.query.filter_by(Email="john.doe@example.com").first()
@@ -97,3 +104,71 @@ def test_register_user(client):
     puntos_balance = PuntosBalance.query.filter_by(Id_Usuario=user.Id_Usuario).first()
     assert puntos_balance is not None
     assert puntos_balance.Puntos_Total == 0
+
+class TestSignIn(unittest.TestCase):
+
+    def setUp(self):
+        self.app = create_app()
+        self.app.config.update({
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            "SQLALCHEMY_TRACK_MODIFICATIONS": False
+        })
+
+        with self.app.app_context():
+            db.drop_all()  # Clear the database before each test
+            db.create_all()  # Use the single instance for database setup
+
+        self.client = self.app.test_client()
+
+        hashed_password = generate_password_hash('testpassword')
+        unique_email = f"testuser_{uuid.uuid4()}@example.com"  # Generate a unique email
+        test_user = Usuarios(
+            Nombre_Usuario='TestUser',  # Ensure this field is populated
+            Apellido_Usuario='User',
+            Email=unique_email,
+            Hash_Contrasena_Usuario=hashed_password
+        )
+        with self.app.app_context():
+            try:
+                db.session.add(test_user)
+                db.session.commit()
+            except Exception as e:
+                logging.error(f"Error during setup: {e}")
+                db.session.rollback()
+
+    def tearDown(self):
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def test_sign_in_success(self):
+        with self.app.app_context():
+            user = Usuarios.query.first()
+            self.assertIsNotNone(user, "Test user was not created in the database.")
+
+        response = self.client.post('/auth/signin', json={
+            'email': user.Email,  # Use the email from the database
+            'password': 'testpassword'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Inicio de sesión exitoso', response.get_json().get('message', ''))
+
+    def test_sign_in_invalid_password(self):
+        response = self.client.post('/auth/signin', json={
+            'email': 'testuser@example.com',
+            'password': 'wrongpassword'
+        })
+        self.assertEqual(response.status_code, 401)
+        self.assertIn('Credenciales inválidas', response.get_json().get('error', ''))
+
+    def test_sign_in_user_not_found(self):
+        response = self.client.post('/auth/signin', json={
+            'email': 'nonexistent@example.com',
+            'password': 'testpassword'
+        })
+        self.assertEqual(response.status_code, 401)
+        self.assertIn('Credenciales inválidas', response.get_json().get('error', ''))
+
+if __name__ == '__main__':
+    unittest.main()

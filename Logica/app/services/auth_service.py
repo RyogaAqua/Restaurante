@@ -16,10 +16,10 @@ class AuthService:
             email (str): La dirección de correo electrónico del usuario.
 
         Returns:
-            Usuario: El objeto del usuario si se encuentra, o None si no existe.
+            Usuarios: El objeto del usuario si se encuentra, o None si no existe.
         """
-        from ..models import Usuario  # Importación diferida para evitar dependencia circular
-        return Usuario.query.filter_by(email=email).first()
+        from ..models import Usuarios  # Importación diferida para evitar dependencia circular
+        return Usuarios.query.filter_by(Email=email).first()
 
     def create_user(self, data):
         """
@@ -29,9 +29,9 @@ class AuthService:
             data (dict): Diccionario que contiene los detalles del usuario.
 
         Returns:
-            Usuario: El objeto del usuario recién creado.
+            Usuarios: El objeto del usuario recién creado.
         """
-        from ..models import Usuario, Address  # Importación diferida para evitar dependencia circular
+        from ..models import Usuarios, Address  # Importación diferida para evitar dependencia circular
 
         # Crear o buscar la dirección asociada
         address_data = data.get('address')
@@ -58,7 +58,7 @@ class AuthService:
             address = None
 
         # Crear el usuario
-        new_user = Usuario(
+        new_user = Usuarios(
             nombre_usuario=data.get('nombre_usuario'),
             apellido_usuario=data.get('apellido_usuario'),
             email=data.get('email'),
@@ -80,10 +80,10 @@ class AuthService:
             metodo_de_pago (str): Nuevo método de pago.
 
         Returns:
-            Usuario: El objeto del usuario actualizado.
+            Usuarios: El objeto del usuario actualizado.
         """
-        from ..models import Usuario  # Importación diferida para evitar dependencia circular
-        user = Usuario.query.get(user_id)
+        from ..models import Usuarios  # Importación diferida para evitar dependencia circular
+        user = Usuarios.query.get(user_id)
         if not user:
             raise ValueError("Usuario no encontrado.")
 
@@ -105,9 +105,9 @@ class AuthService:
         Raises:
             ValueError: Si el usuario no existe o ocurre un error durante la actualización.
         """
-        from ..models import Usuario, Address  # Importación diferida para evitar dependencia circular
+        from ..models import Usuarios, Address  # Importación diferida para evitar dependencia circular
         try:
-            user = Usuario.query.get(user_id)
+            user = Usuarios.query.get(user_id)
             if not user:
                 raise ValueError("Usuario no encontrado.")
 
@@ -166,9 +166,9 @@ class AuthService:
         Raises:
             ValueError: Si la contraseña actual no coincide o si ocurre un error.
         """
-        from ..models import Usuario  # Importación diferida para evitar dependencia circular
+        from ..models import Usuarios  # Importación diferida para evitar dependencia circular
         try:
-            user = Usuario.query.get(user_id)
+            user = Usuarios.query.get(user_id)
             if not user:
                 raise ValueError("Usuario no encontrado.")
 
@@ -193,7 +193,7 @@ class AuthService:
         Raises:
             ValueError: Si el usuario no existe.
         """
-        from ..models import Usuario  # Importación diferida para evitar dependencia circular
+        from ..models import Usuarios  # Importación diferida para evitar dependencia circular
         user = self.get_user_by_email(email)
         if not user:
             raise ValueError("No se encontró un usuario con ese correo electrónico.")
@@ -219,7 +219,7 @@ class AuthService:
         Raises:
             ValueError: Si el token es inválido o ha expirado.
         """
-        from ..models import Usuario  # Importación diferida para evitar dependencia circular
+        from ..models import Usuarios  # Importación diferida para evitar dependencia circular
         serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
         try:
@@ -249,17 +249,17 @@ class AuthService:
         Raises:
             ValueError: Si las credenciales son inválidas o el usuario no existe.
         """
-        from ..models import Usuario  # Importación diferida para evitar dependencia circular
+        from ..models import Usuarios  # Importación diferida para evitar dependencia circular
 
         # Buscar al usuario por correo electrónico
-        user = Usuario.query.filter_by(email=email).first()
+        user = Usuarios.query.filter_by(Email=email).first()
         if not user:
             raise ValueError("Usuario no encontrado.")
 
         # Verificar la contraseña
-        if not check_password_hash(user.hash_contrasena_usuario, password):
+        if not check_password_hash(user.Hash_Contrasena_Usuario, password):
             raise ValueError("Contraseña incorrecta.")
 
         # Generar un token de autenticación (simulado aquí, reemplazar con JWT real si es necesario)
-        token = f"fake-token-for-{user.id_usuario}"
+        token = f"fake-token-for-{user.Id_Usuario}"
         return token

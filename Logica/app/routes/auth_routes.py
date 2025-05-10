@@ -5,6 +5,7 @@ from ..extensions import db  # Use the db instance from extensions.py
 from ..models import Usuarios, Address, PuntosBalance  # Cambiar a import relativo
 from ..utils.security import hash_password  # Cambiar a import relativo
 import logging
+import traceback
 
 """
 Este módulo define las rutas relacionadas con la autenticación de usuarios,
@@ -17,28 +18,44 @@ auth_service = AuthService()  # Instanciar el servicio de autenticación
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    nombre = data.get('nombre')
-    apellido = data.get('apellido')
+    logging.info("Received signup request.")
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        nombre = data.get('nombre')
+        apellido = data.get('apellido')
 
-    # Verifica si el usuario ya existe
-    if Usuarios.query.filter_by(Email=email).first():
-        return jsonify({"message": "El usuario ya existe"}), 400
+        logging.debug(f"Signup payload: {data}")
 
-    # Crea un nuevo usuario
-    hashed_password = generate_password_hash(password)
-    nuevo_usuario = Usuarios(
-        Nombre_Usuario=nombre,
-        Apellido_Usuario=apellido,
-        Email=email,
-        Hash_Contrasena_Usuario=hashed_password
-    )
-    db.session.add(nuevo_usuario)
-    db.session.commit()
+        # Validate required fields
+        if not all([email, password, nombre, apellido]):
+            logging.error("Missing required fields in signup payload.")
+            return jsonify({"error": "Todos los campos son obligatorios."}), 400
 
-    return jsonify({"message": "Usuario creado exitosamente"}), 201
+        # Check if the user already exists
+        if Usuarios.query.filter_by(Email=email).first():
+            logging.warning(f"User with email {email} already exists.")
+            return jsonify({"message": "El usuario ya existe"}), 400
+
+        # Create a new user
+        hashed_password = generate_password_hash(password)
+        nuevo_usuario = Usuarios(
+            Nombre_Usuario=nombre,
+            Apellido_Usuario=apellido,
+            Email=email,
+            Hash_Contrasena_Usuario=hashed_password
+        )
+        db.session.add(nuevo_usuario)
+        db.session.commit()
+
+        logging.info(f"User {email} created successfully.")
+        return jsonify({"message": "Usuario creado exitosamente"}), 201
+
+    except Exception as e:
+        logging.error(f"Error during signup: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({"error": "Ocurrió un error inesperado."}), 500
 
 
 @auth_bp.route('/signin', methods=['POST'])
@@ -161,6 +178,7 @@ def login():
     """
     data = request.get_json()
     if not data or 'email' not in data or 'password' not in data:
+        logging.error("Faltan campos obligatorios en la solicitud de inicio de sesión.")
         return jsonify({"error": "Recurso no encontrado"}), 404
 
     try:
@@ -168,13 +186,18 @@ def login():
         email = data.get('email')
         password = data.get('password')
 
+        logging.debug(f"Intentando iniciar sesión con email: {email}")
+
         # Llamar al método login_user del servicio de autenticación
         token = auth_service.login_user(email, password)
+        logging.info(f"Inicio de sesión exitoso para el usuario: {email}")
         return jsonify({"message": "Inicio de sesión exitoso", "token": token}), 200
     except ValueError as e:
+        logging.warning(f"Error de validación durante el inicio de sesión: {e}")
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        return jsonify({"error": "Ocurrió un error inesperado"}), 500
+        logging.error(f"Error inesperado durante el inicio de sesión: {e}\n{traceback.format_exc()}")
+        return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
 
 @auth_bp.route('/login')
 def login_page():
