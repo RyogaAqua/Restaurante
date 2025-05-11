@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float, Num
 from sqlalchemy.orm import relationship
 from sqlalchemy import func  # Importa func para usar sa.func.now()
 from .extensions import db
+from flask_login import UserMixin
 
 class Address(db.Model):
     __tablename__ = 'Address'
@@ -17,7 +18,7 @@ class Address(db.Model):
         return f"<Address(Id_Address={self.Id_Address}, Address='{self.Address}', City='{self.City}')>"
 
 
-class Usuarios(db.Model):
+class Usuarios(db.Model, UserMixin):
     __tablename__ = 'Usuarios'
 
     Id_Usuario = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -35,6 +36,21 @@ class Usuarios(db.Model):
 
     def __repr__(self):
         return f"<Usuarios(Id_Usuario={self.Id_Usuario}, Email='{self.Email}')>"
+
+    def get_id(self):
+        return str(self.Id_Usuario)
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
 
 
 class PuntosBalance(db.Model):

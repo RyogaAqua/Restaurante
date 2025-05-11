@@ -19,10 +19,12 @@ from .routes import (
 )
 from Logica.app.routes.menu_routes import menu_routes
 from Logica.app.routes.cart_routes import bp as cart_bp  # Importar el blueprint con el nombre correcto
+from Logica.app.routes.auth_routes import auth_bp
 import os
 import logging
 import traceback
 from flask.cli import with_appcontext
+from flask_login import LoginManager
 
 # Configurar logging detallado para Werkzeug
 werkzeug_logger = logging.getLogger('werkzeug')
@@ -35,6 +37,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logging.info("Werkzeug logging configurado para registrar solicitudes HTTP.")
 
 migrate = Migrate()
+login_manager = LoginManager()
 
 def create_app():
     """
@@ -62,6 +65,11 @@ def create_app():
     # Initialize the database
     db.init_app(app)
 
+    # Configurar LoginManager
+    login_manager.login_view = 'auth.login'  # Ruta para la página de inicio de sesión
+    login_manager.login_message = 'Por favor, inicia sesión para acceder a esta página.'
+    login_manager.init_app(app)  # Inicializar LoginManager con la aplicación Flask
+
     # Registra los blueprints usando la función register_routes
     register_routes(app)
 
@@ -70,6 +78,10 @@ def create_app():
 
     # Registrar el blueprint del carrito con un nombre único
     app.register_blueprint(cart_bp, url_prefix='/cart', name='cart_blueprint')
+
+    # Registrar el blueprint de autenticación con un prefijo explícito
+    logging.debug("Registrando el Blueprint auth_bp con prefijo '/auth'")
+    app.register_blueprint(auth_bp, url_prefix='/auth', name='auth_blueprint')
 
     # Agrega manejadores globales de errores
     register_error_handlers(app)
@@ -135,6 +147,12 @@ def register_error_handlers(app):
         """
         logging.error(f"500 Error: {error}\n{traceback.format_exc()}")
         return {"error": "Ocurrió un error interno"}, 500
+
+# Definir la función de carga de usuarios
+@login_manager.user_loader
+def load_user(user_id):
+    from .models import Usuarios  # Importar el modelo de usuario
+    return Usuarios.query.get(int(user_id))
 
 # Asegúrate de que Flask CLI pueda reconocer el contexto de la aplicación
 app = create_app()

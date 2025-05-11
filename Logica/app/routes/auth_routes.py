@@ -6,6 +6,10 @@ from ..models import Usuarios, Address, PuntosBalance  # Cambiar a import relati
 from ..utils.security import hash_password  # Cambiar a import relativo
 import logging
 import traceback
+from flask_login import current_user, login_user, logout_user
+
+logging.basicConfig(level=logging.DEBUG)
+logging.debug("Cargando el endpoint /status en el Blueprint auth_bp")
 
 """
 Este módulo define las rutas relacionadas con la autenticación de usuarios,
@@ -182,16 +186,20 @@ def login():
         return jsonify({"error": "Recurso no encontrado"}), 404
 
     try:
-        # Parsear los datos JSON de la solicitud
         email = data.get('email')
         password = data.get('password')
 
         logging.debug(f"Intentando iniciar sesión con email: {email}")
 
-        # Llamar al método login_user del servicio de autenticación
-        token = auth_service.login_user(email, password)
-        logging.info(f"Inicio de sesión exitoso para el usuario: {email}")
-        return jsonify({"message": "Inicio de sesión exitoso", "token": token}), 200
+        # Validar las credenciales del usuario
+        user = auth_service.validate_user(email, password)
+        if user:
+            login_user(user)  # Establecer la sesión del usuario
+            logging.info(f"Inicio de sesión exitoso para el usuario: {email}")
+            return jsonify({"message": "Inicio de sesión exitoso"}), 200
+        else:
+            logging.warning("Credenciales inválidas.")
+            return jsonify({"error": "Credenciales inválidas"}), 401
     except ValueError as e:
         logging.warning(f"Error de validación durante el inicio de sesión: {e}")
         return jsonify({"error": str(e)}), 400
@@ -315,3 +323,17 @@ def reset_password():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
+
+@auth_bp.route('/status', methods=['GET'])
+def auth_status():
+    logging.debug("Endpoint /status llamado")
+    if current_user.is_authenticated:
+        return jsonify({'isAuthenticated': True, 'username': current_user.Nombre_Usuario})
+    else:
+        return jsonify({'isAuthenticated': False})
+
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    logout_user()
+    logging.info("Usuario ha cerrado sesión exitosamente.")
+    return jsonify({"message": "Cierre de sesión exitoso."}), 200

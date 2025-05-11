@@ -332,3 +332,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
     images.forEach(img => imageObserver.observe(img));
 });
+
+// Verificar el estado de autenticación y actualizar los botones de Sign In y Sign Out
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('/auth/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.isAuthenticated) {
+                document.getElementById('signout-button').style.display = 'inline-block';
+                document.querySelector('.signin-btn').style.display = 'none';
+            } else {
+                document.getElementById('signout-button').style.display = 'none';
+                document.querySelector('.signin-btn').style.display = 'inline-block';
+            }
+        })
+        .catch(error => console.error('Error al verificar el estado de autenticación:', error));
+});
+
+// Agregar evento al botón de Sign Out
+document.getElementById('signout-button').addEventListener('click', (e) => {
+    e.preventDefault();
+    fetch('/auth/logout', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                // Actualizar el estado de los botones
+                document.getElementById('signout-button').style.display = 'none';
+                document.querySelector('.signin-btn').style.display = 'inline-block';
+                alert('Has cerrado sesión exitosamente.');
+            } else {
+                alert('Error al cerrar sesión.');
+            }
+        })
+        .catch(error => console.error('Error al cerrar sesión:', error));
+});

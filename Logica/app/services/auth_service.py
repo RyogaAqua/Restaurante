@@ -263,3 +263,19 @@ class AuthService:
         # Generar un token de autenticación (simulado aquí, reemplazar con JWT real si es necesario)
         token = f"fake-token-for-{user.Id_Usuario}"
         return token
+
+    def validate_user(self, email, password):
+        """
+        Valida las credenciales del usuario.
+
+        Args:
+            email (str): La dirección de correo electrónico del usuario.
+            password (str): La contraseña del usuario.
+
+        Returns:
+            Usuarios: El objeto del usuario si las credenciales son correctas, o None si no lo son.
+        """
+        user = self.get_user_by_email(email)
+        if user and check_password_hash(user.Hash_Contrasena_Usuario, password):
+            return user
+        return None
