@@ -44,70 +44,13 @@
             <div class="category-filters">
                 <button class="category-btn active" data-category="all">All</button>
                 <button class="category-btn" data-category="burgers">Burgers</button>
-                <button class="category-btn" data-category="pizzas">Pizzas</button>
+                <button class="category-btn" data-category="chicken">Chicken</button>
                 <button class="category-btn" data-category="drinks">Drinks</button>
                 <button class="category-btn" data-category="desserts">Desserts</button>
             </div>
 
             <div class="menu-grid">
-                <!-- Burgers -->
-                <div class="menu-item" data-category="burgers">
-                    <div class="menu-item-img">
-                        <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd" alt="Classic Burger">
-                    </div>
-                    <div class="menu-item-info">
-                        <h3>Classic Burger</h3>
-                        <p>Fresh beef patty with lettuce, tomato, and special sauce</p>
-                        <div class="menu-item-footer">
-                            <span class="price">$12.99</span>
-                            <button class="add-to-cart">Add to Cart</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="menu-item" data-category="burgers">
-                    <div class="menu-item-img">
-                        <img src="https://images.unsplash.com/photo-1571091718767-18b5b1457add" alt="Cheese Burger">
-                    </div>
-                    <div class="menu-item-info">
-                        <h3>Cheese Burger</h3>
-                        <p>Classic burger with melted cheddar cheese</p>
-                        <div class="menu-item-footer">
-                            <span class="price">$14.99</span>
-                            <button class="add-to-cart">Add to Cart</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pizzas -->
-                <div class="menu-item" data-category="pizzas">
-                    <div class="menu-item-img">
-                        <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591" alt="Margherita Pizza">
-                    </div>
-                    <div class="menu-item-info">
-                        <h3>Margherita Pizza</h3>
-                        <p>Fresh tomatoes, mozzarella, and basil</p>
-                        <div class="menu-item-footer">
-                            <span class="price">$16.99</span>
-                            <button class="add-to-cart">Add to Cart</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Drinks -->
-                <div class="menu-item" data-category="drinks">
-                    <div class="menu-item-img">
-                        <img src="https://images.unsplash.com/photo-1544145945-f90425340c7e" alt="Fresh Lemonade">
-                    </div>
-                    <div class="menu-item-info">
-                        <h3>Fresh Lemonade</h3>
-                        <p>Freshly squeezed lemons with mint</p>
-                        <div class="menu-item-footer">
-                            <span class="price">$4.99</span>
-                            <button class="add-to-cart">Add to Cart</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Dynamic content will be loaded here -->
             </div>
         </div>
     </section>
@@ -118,7 +61,7 @@
             <div class="footer-grid">
                 <div class="footer-section">
                     <h3>About Us</h3>
-                    <p>Handout is your destination for delicious burgers, pizzas, and more. We pride ourselves in quality food and excellent service.</p>
+                    <p>Handout is your destination for delicious burgers, chickens, and more. We pride ourselves in quality food and excellent service.</p>
                 </div>
                 <div class="footer-section">
                     <h3>Quick Links</h3>
@@ -154,5 +97,71 @@
     </footer>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        fetch('/menu/api/menu')
+            .then(response => response.json())
+            .then(menu => {
+                const menuGrid = document.querySelector('.menu-grid');
+                const categoryButtons = document.querySelectorAll('.category-btn');
+
+                const renderMenu = (category) => {
+                    menuGrid.innerHTML = '';
+
+                    menu.forEach(item => {
+                        if (category === 'all' || item.category === category) {
+                            const menuItem = document.createElement('div');
+                            menuItem.classList.add('menu-item');
+                            menuItem.setAttribute('data-category', item.category);
+
+                            menuItem.innerHTML = `
+                                <div class="menu-item-img">
+                                    <img src="${item.image_url}" alt="${item.name}">
+                                </div>
+                                <div class="menu-item-info">
+                                    <h3>${item.name}</h3>
+                                    <p>${item.calories ? item.calories + ' calories' : ''}</p>
+                                    <div class="menu-item-footer">
+                                        <span class="price">$${item.price.toFixed(2)}</span>
+                                        <button class="add-to-cart">Add to Cart</button>
+                                    </div>
+                                </div>
+                            `;
+
+                            // Agregar evento al botón "Add to Cart"
+                            menuItem.querySelector('.add-to-cart').addEventListener('click', () => {
+                                fetch('/cart/api/cart', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(item)
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    alert(`${item.name} added to cart!`);
+                                })
+                                .catch(error => console.error('Error adding to cart:', error));
+                            });
+
+                            menuGrid.appendChild(menuItem);
+                        }
+                    });
+                };
+
+                renderMenu('all');
+
+                categoryButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const category = button.getAttribute('data-category');
+                        categoryButtons.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        renderMenu(category);
+                    });
+                });
+            })
+            .catch(error => console.error('Error fetching menu:', error));
+    });
+    </script>
 </body>
 </html>

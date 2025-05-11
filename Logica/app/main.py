@@ -17,6 +17,8 @@ from .routes import (
     support_routes,
     stats_routes,
 )
+from Logica.app.routes.menu_routes import menu_routes
+from Logica.app.routes.cart_routes import bp as cart_bp  # Importar el blueprint con el nombre correcto
 import os
 import logging
 import traceback
@@ -62,6 +64,12 @@ def create_app():
 
     # Registra los blueprints usando la función register_routes
     register_routes(app)
+
+    # Registrar el blueprint de rutas del menú
+    app.register_blueprint(menu_routes, url_prefix='/menu')
+
+    # Registrar el blueprint del carrito con un nombre único
+    app.register_blueprint(cart_bp, url_prefix='/cart', name='cart_blueprint')
 
     # Agrega manejadores globales de errores
     register_error_handlers(app)

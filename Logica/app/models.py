@@ -90,3 +90,18 @@ class OrdenItems(db.Model):
     # Relación con Orden y MenuObjetos
     orden = relationship('Orden', back_populates='orden_items')
     menu_objeto = relationship('MenuObjetos', back_populates='orden_items')
+
+
+class CartItem(db.Model):
+    __tablename__ = 'cart'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('Usuarios.Id_Usuario'), nullable=False)
+    id_objeto = db.Column(db.Integer, db.ForeignKey('menu_objetos.Id_Objeto'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+
+    user = relationship('Usuarios', backref='cart_items')
+    menu_item = relationship('MenuObjetos', backref='cart_items')
+
+    def __repr__(self):
+        return f"<CartItem(id={self.id}, user_id={self.user_id}, id_objeto={self.id_objeto}, quantity={self.quantity})>"

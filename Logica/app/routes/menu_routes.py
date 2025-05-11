@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from ..services.menu_service import get_menu
+from Logica.app.models import MenuObjetos
 
 """
 Este módulo define las rutas relacionadas con el menú, permitiendo a los usuarios
@@ -7,22 +7,25 @@ recuperar los elementos disponibles en el menú.
 """
 
 # Crear un blueprint para las rutas del menú
-bp = Blueprint('menu_routes', __name__)
+menu_routes = Blueprint('menu_routes', __name__)
 
-@bp.route('/menu', methods=['GET'])
-def menu():
+bp = Blueprint('menu', __name__)
+
+@bp.route('/api/menu', methods=['GET'])
+def get_menu():
     """
-    Ruta para obtener todos los elementos del menú.
-
-    Procesa una solicitud GET y devuelve una lista de elementos del menú
-    en formato JSON.
-
-    Returns:
-        Response: Respuesta JSON con los elementos del menú o un mensaje de error.
+    Endpoint para obtener el menú desde la base de datos.
     """
-    try:
-        # Llamar a la función del servicio para obtener el menú
-        menu_items = get_menu()
-        return jsonify({"menu": menu_items}), 200
-    except Exception as e:
-        return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
+    menu_items = MenuObjetos.query.all()
+    menu = [
+        {
+            "id": item.Id_Objeto,
+            "name": item.Nombre_Objeto,
+            "price": item.Precio,
+            "category": item.Categoria,
+            "calories": item.Calorias,
+            "image_url": item.Imagen_URL
+        }
+        for item in menu_items
+    ]
+    return jsonify(menu)
