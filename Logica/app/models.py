@@ -33,6 +33,7 @@ class Usuarios(db.Model, UserMixin):
 
     puntos_balance = db.relationship('PuntosBalance', back_populates='usuario', uselist=False)
     ordenes = db.relationship('Orden', back_populates='usuario')  # Relación con Orden
+    cart_items = db.relationship('CartItem', back_populates='user', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f"<Usuarios(Id_Usuario={self.Id_Usuario}, Email='{self.Email}')>"
@@ -111,13 +112,10 @@ class OrdenItems(db.Model):
 class CartItem(db.Model):
     __tablename__ = 'cart'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('Usuarios.Id_Usuario'), nullable=False)
-    id_objeto = db.Column(db.Integer, db.ForeignKey('menu_objetos.Id_Objeto'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False, default=1)
+    Id_Cart = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    Id_Usuario = db.Column(db.Integer, db.ForeignKey('Usuarios.Id_Usuario'), nullable=False)
+    Id_Objeto = db.Column(db.Integer, nullable=False)
+    Cantidad = db.Column(db.Integer, nullable=False, default=1)
+    Agregado_En = db.Column(db.TIMESTAMP, nullable=True, server_default=db.func.current_timestamp())
 
-    user = relationship('Usuarios', backref='cart_items')
-    menu_item = relationship('MenuObjetos', backref='cart_items')
-
-    def __repr__(self):
-        return f"<CartItem(id={self.id}, user_id={self.user_id}, id_objeto={self.id_objeto}, quantity={self.quantity})>"
+    user = db.relationship('Usuarios', back_populates='cart_items')

@@ -4,32 +4,32 @@ from flask_migrate import Migrate
 from .extensions import db  # Ensure single instance of SQLAlchemy is used
 from .routes.auth_routes import auth_bp  # Importar el blueprint de autenticación
 from .database import init_app
+from Logica.app.routes.cart_routes import bp as cart_bp
+from .config import config_by_name  # Importar configuraciones por nombre
+from .routes import register_routes  # Importar la función para registrar rutas
 
 # Initialize Flask-Migrate
 migrate = Migrate()
 
-def create_app():
-    """
-    Crea y configura una instancia de la aplicación Flask.
+def create_app(config_name):
+    """Crear y configurar la aplicación Flask."""
+    app = Flask(__name__)
+    app.config.from_object(config_by_name[config_name])
 
-    - Configura la aplicación utilizando la clase Config.
-    - Registra los blueprints para manejar las rutas.
-
-    Returns:
-        app (Flask): La instancia de la aplicación Flask configurada.
-    """
-    app = Flask(
-        __name__,
-        static_folder=os.path.join('..', '..', 'Pagina_Web', 'template_folder', 'static'),
-        template_folder=os.path.join('..', '..', 'Pagina_Web', 'template_folder', 'templates')
-    )
-    app.config.from_object('Logica.app.config.Config')
-
-    # Initialize SQLAlchemy using the single instance
-    db.init_app(app)
+    # Inicializar extensiones
+    db.init_app(app)  # Asegurar que SQLAlchemy esté correctamente inicializado
+    migrate.init_app(app, db)
 
     # Registrar blueprints
-    app.register_blueprint(auth_bp)
+    register_routes(app)
+
+    # Eliminar cualquier registro duplicado del blueprint `cart_bp`
+    if 'cart_blueprint' in app.blueprints:
+        del app.blueprints['cart_blueprint']
+
+    # Registrar el blueprint del carrito con el prefijo correcto
+    if 'cart' not in app.blueprints:
+        app.register_blueprint(cart_bp, url_prefix='/api/cart')
 
     return app
 

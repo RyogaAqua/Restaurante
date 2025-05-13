@@ -12,7 +12,11 @@ class DevelopmentConfig(Config):
 
 # Configuración específica para el entorno de pruebas.
 class TestingConfig(Config):
-    TESTING = True  # Activa el modo de pruebas.
+    """Configuración específica para pruebas."""
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'  # Base de datos en memoria para pruebas
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = 'testing-secret-key'
 
 # Configuración específica para el entorno de producción.
 class ProductionConfig(Config):

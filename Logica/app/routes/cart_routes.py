@@ -1,7 +1,7 @@
-from flask import Blueprint, request, jsonify
-from ..services.cart_service import CartService  # Import relativo
-from Logica.app.models import CartItem
-from Logica.app.database import db
+from flask import Blueprint, request, jsonify, session
+from flask_login import current_user
+from Logica.app.models import CartItem, MenuObjetos, db
+import logging
 
 """
 Este módulo define las rutas relacionadas con el carrito, permitiendo a los usuarios
@@ -10,89 +10,107 @@ guardar y recuperar su carrito desde el backend.
 
 # Crear un blueprint para las rutas del carrito
 bp = Blueprint('cart', __name__)
-cart_service = CartService()  # Instanciar el servicio del carrito
 
-# Carrito en memoria (para simplificar, no persistente)
-cart = []
+logger = logging.getLogger(__name__)
 
-@bp.route('/cart', methods=['POST'])
-def save_cart():
-    """
-    Ruta para guardar el carrito del usuario en el backend.
-
-    Procesa una solicitud POST con los datos del carrito y los guarda en la base de datos.
-
-    Returns:
-        Response: Respuesta JSON con un mensaje de éxito o error.
-    """
-    try:
-        data = request.get_json()
-        user_id = data.get('user_id')
-        cart_items = data.get('cart_items')
-
-        if not user_id or not cart_items:
-            raise ValueError("Faltan campos requeridos: user_id o cart_items.")
-
-        cart_service.save_cart(user_id, cart_items)
-        return jsonify({"message": "Carrito guardado exitosamente."}), 200
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
-
-@bp.route('/cart', methods=['GET'])
+@bp.route('', methods=['GET'])
 def get_cart():
-    """
-    Ruta para recuperar el carrito del usuario desde el backend.
+    """Obtener los elementos del carrito del usuario autenticado."""
+    # Verificar si el usuario está autenticado
+    if not current_user.is_authenticated:
+        logger.debug("Usuario no autenticado al intentar obtener el carrito.")
+        return jsonify({'error': 'Usuario no autenticado'}), 401
 
-    Procesa una solicitud GET con el parámetro `user_id` y devuelve los datos del carrito.
+    # Registrar el usuario actual para depuración
+    logger.debug(f"Usuario autenticado: {current_user.Id_Usuario}")
 
-    Returns:
-        Response: Respuesta JSON con los datos del carrito o un mensaje de error.
-    """
-    try:
-        user_id = request.args.get('user_id')
-        if not user_id:
-            raise ValueError("Falta el parámetro requerido: user_id.")
+    # Restaurar la funcionalidad del carrito para asegurar que los datos se envíen correctamente
+    cart_items = db.session.query(CartItem, MenuObjetos).join(MenuObjetos, CartItem.Id_Objeto == MenuObjetos.Id_Objeto).filter(CartItem.Id_Usuario == current_user.Id_Usuario).all()
 
-        cart_items = cart_service.get_cart(user_id)
-        return jsonify({"cart_items": cart_items}), 200
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
+    # Construir la respuesta con los datos necesarios
+    response = [{
+        'id': item.CartItem.Id_Cart,
+        'name': item.MenuObjetos.Nombre_Objeto,
+        'price': item.MenuObjetos.Precio,
+        'image_url': item.MenuObjetos.Imagen_URL,
+        'quantity': item.CartItem.Cantidad
+    } for item in cart_items]
 
-@bp.route('/api/cart', methods=['POST'])
+    logger.debug(f"Datos enviados al frontend: {response}")
+    return jsonify(response)
+
+@bp.route('', methods=['POST'])
 def add_to_cart():
-    """
-    Agregar un elemento al carrito.
-    """
-    item = request.json
-    cart.append(item)
-    return jsonify({"message": "Item added to cart", "cart": cart}), 201
+    """Agregar un elemento al carrito del usuario autenticado."""
+    data = request.get_json()
+    id_objeto = data.get('id_objeto')
+    quantity = data.get('quantity', 1)
 
-@bp.route('/api/cart', methods=['GET'])
-def get_memory_cart():
-    """
-    Obtener los elementos del carrito.
-    """
-    return jsonify(cart)
+    if not id_objeto:
+        logger.debug("Faltan campos requeridos: id_objeto")
+        return jsonify({'error': 'Faltan campos requeridos: id_objeto'}), 400
 
-@bp.route('/api/cart/<int:item_id>', methods=['DELETE'])
-def remove_from_cart(item_id):
-    """
-    Eliminar un elemento del carrito.
-    """
     try:
-        # Buscar el elemento del carrito por ID
-        cart_item = CartItem.query.filter_by(id=item_id).first()
-        if not cart_item:
-            return jsonify({"error": "El elemento no existe en el carrito."}), 404
+        logger.debug(f"Intentando agregar al carrito: id_objeto={id_objeto}, quantity={quantity}")
+        cart_item = CartItem.query.filter_by(Id_Usuario=current_user.Id_Usuario, Id_Objeto=id_objeto).first()
+        if cart_item:
+            cart_item.Cantidad += quantity
+            logger.debug(f"Actualizando cantidad del item {id_objeto} a {cart_item.Cantidad}")
+        else:
+            cart_item = CartItem(Id_Usuario=current_user.Id_Usuario, Id_Objeto=id_objeto, Cantidad=quantity)
+            db.session.add(cart_item)
+            logger.debug(f"Agregando nuevo item al carrito: {cart_item}")
 
-        # Eliminar el elemento del carrito
-        db.session.delete(cart_item)
         db.session.commit()
+        logger.debug("Cambios confirmados en la base de datos.")
+        return jsonify({'message': 'Item agregado al carrito'}), 201
 
-        return jsonify({"message": "Elemento eliminado del carrito."}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error al agregar al carrito: {e}")
+        db.session.rollback()
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+@bp.route('/<int:item_id>', methods=['PATCH'])
+def update_cart_item(item_id):
+    """Actualizar la cantidad de un elemento en el carrito del usuario autenticado."""
+    data = request.get_json()
+    change = data.get('change')
+
+    if change is None:
+        return jsonify({'error': 'Falta el campo change'}), 400
+
+    cart_item = CartItem.query.filter_by(Id_Usuario=current_user.Id_Usuario, Id_Cart=item_id).first()
+    if not cart_item:
+        return jsonify({'error': 'Elemento no encontrado en el carrito'}), 404
+
+    # Depuración: registrar la solicitud de actualización
+    logger.debug(f"Actualizando cantidad: item_id={item_id}, change={change}")
+
+    if cart_item.Cantidad + change <= 0:
+        logger.debug(f"Eliminando el elemento del carrito: item_id={item_id}")
+        db.session.delete(cart_item)
+    else:
+        cart_item.Cantidad += change
+        logger.debug(f"Nueva cantidad para item_id={item_id}: {cart_item.Cantidad}")
+        db.session.add(cart_item)
+
+    db.session.commit()
+    logger.debug("Cambios confirmados en la base de datos.")
+
+    return jsonify({'message': 'Cantidad actualizada correctamente'})
+
+@bp.route('/<int:item_id>', methods=['DELETE'])
+def remove_from_cart(item_id):
+    """Eliminar un elemento del carrito del usuario autenticado."""
+    cart_item = CartItem.query.filter_by(Id_Usuario=current_user.Id_Usuario, Id_Cart=item_id).first()
+    if not cart_item:
+        return jsonify({'error': 'Elemento no encontrado en el carrito'}), 404
+
+    # Depuración: registrar la solicitud de eliminación
+    logger.debug(f"Eliminando elemento del carrito: item_id={item_id}")
+
+    db.session.delete(cart_item)
+    db.session.commit()
+    logger.debug("Elemento eliminado del carrito y cambios confirmados en la base de datos.")
+
+    return jsonify({'message': 'Elemento eliminado del carrito'})

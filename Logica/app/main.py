@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify, render_template
+from flask import Flask, send_from_directory, jsonify, render_template, request
 from flask_migrate import Migrate
 from .extensions import cors, db  # Importar la instancia de SQLAlchemy
 from .config import Config
@@ -32,6 +32,9 @@ werkzeug_logger.setLevel(logging.INFO)
 
 # Asegurarse de que Werkzeug registre las solicitudes HTTP
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Cambiar el nivel de logging a WARNING para reducir la verbosidad
+logging.getLogger().setLevel(logging.WARNING)
 
 # Registrar un mensaje al iniciar el servidor
 logging.info("Werkzeug logging configurado para registrar solicitudes HTTP.")
@@ -76,8 +79,9 @@ def create_app():
     # Registrar el blueprint de rutas del menú
     app.register_blueprint(menu_routes, url_prefix='/menu')
 
-    # Registrar el blueprint del carrito con un nombre único
-    app.register_blueprint(cart_bp, url_prefix='/cart', name='cart_blueprint')
+    # Registrar el blueprint del carrito con el prefijo correcto
+    logging.debug("Registrando el Blueprint cart_bp con prefijo '/api/cart'")
+    app.register_blueprint(cart_bp, url_prefix='/api/cart', name='cart_blueprint')
 
     # Registrar el blueprint de autenticación con un prefijo explícito
     logging.debug("Registrando el Blueprint auth_bp con prefijo '/auth'")
@@ -85,6 +89,15 @@ def create_app():
 
     # Agrega manejadores globales de errores
     register_error_handlers(app)
+
+    # Registrar un manejador para capturar todas las solicitudes entrantes
+    @app.before_request
+    def log_request_info():
+        logging.debug(f"Solicitud entrante: {request.method} {request.url}")
+
+    # Registrar un manejador para listar todas las rutas registradas al inicio
+    for rule in app.url_map.iter_rules():
+        logging.debug(f"Ruta registrada: {rule}")
 
     # Ruta para servir la página principal
     @app.route("/")

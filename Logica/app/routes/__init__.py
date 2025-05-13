@@ -38,7 +38,7 @@ def register_routes(app: Flask):
     logging.info("Registering auth_bp blueprint with prefix '/auth'")
     app.register_blueprint(auth_bp, url_prefix='/auth')  # Asegúrate de registrar el blueprint de autenticación
     app.register_blueprint(delivery_bp, url_prefix='/delivery')
-    app.register_blueprint(cart_bp, url_prefix='/cart')
+    # app.register_blueprint(cart_bp, url_prefix='/cart')  # Eliminado para evitar duplicados
     app.register_blueprint(inventory_bp, url_prefix='/inventory')
     app.register_blueprint(menu_bp, url_prefix='/menu')
     app.register_blueprint(notification_bp, url_prefix='/notifications')

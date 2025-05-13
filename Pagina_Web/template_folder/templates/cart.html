@@ -49,77 +49,168 @@
     </section>
 
     <script>
+    // Definir las variables globales para el carrito
+    const cartItemsContainer = document.getElementById('cart-items');
+    const cartTotal = document.getElementById('cart-total');
+
+    // Función para actualizar la cantidad de un elemento
+    const updateQuantity = (itemId, change) => {
+        console.log(`Actualizando cantidad: itemId=${itemId}, change=${change}`);
+
+        fetch(`/api/cart/${itemId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ change })
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Error al actualizar la cantidad:', response.statusText);
+            }
+            return response.json();
+        })
+        .then(() => {
+            loadCart();
+        })
+        .catch(error => console.error('Error al actualizar la cantidad:', error));
+    };
+
+    // Función para eliminar un elemento del carrito
+    const removeFromCart = (itemId) => {
+        console.log(`Eliminando elemento: itemId=${itemId}`);
+
+        fetch(`/api/cart/${itemId}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Error al eliminar el elemento:', response.statusText);
+            }
+            return response.json();
+        })
+        .then(() => {
+            loadCart();
+        })
+        .catch(error => console.error('Error al eliminar el elemento:', error));
+    };
+
+    // Función para cargar los elementos del carrito
+    const loadCart = () => {
+        fetch('/api/cart')
+            .then(response => response.json())
+            .then(cart => {
+                cartItemsContainer.innerHTML = '';
+                let total = 0;
+
+                console.log('Respuesta del backend:', cart);
+
+                cart.forEach(item => {
+                    const cartItem = document.createElement('div');
+                    cartItem.classList.add('cart-item');
+
+                    cartItem.innerHTML = `
+                        <div class="item-img">
+                            <img src="${item.image_url}" alt="${item.name}">
+                        </div>
+                        <div class="item-details">
+                            <h4>${item.name}</h4>
+                            <p>Precio: $${item.price.toFixed(2)}</p>
+                            <div class="item-quantity">
+                                <button class="quantity-btn minus" onclick="updateQuantity(${item.id}, -1)">-</button>
+                                <span class="quantity">${item.quantity}</span>
+                                <button class="quantity-btn plus" onclick="updateQuantity(${item.id}, 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="remove-btn" onclick="removeFromCart(${item.id})">Eliminar</button>
+                        </div>
+                    `;
+
+                    cartItemsContainer.appendChild(cartItem);
+                    total += item.price * item.quantity;
+                });
+
+                cartTotal.textContent = `Total: $${total.toFixed(2)}`;
+            })
+            .catch(error => console.error('Error al cargar el carrito:', error));
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
-        const cartItemsContainer = document.getElementById('cart-items');
-        const cartTotal = document.getElementById('cart-total');
-
-        // Función para cargar los elementos del carrito
-        const loadCart = () => {
-            fetch('/cart/api/cart')
-                .then(response => response.json())
-                .then(cart => {
-                    cartItemsContainer.innerHTML = '';
-                    let total = 0;
-
-                    cart.forEach(item => {
-                        const cartItem = document.createElement('div');
-                        cartItem.classList.add('cart-item');
-
-                        cartItem.innerHTML = `
-                            <div class="item-img">
-                                <img src="${item.image_url}" alt="${item.name}">
-                            </div>
-                            <div class="item-details">
-                                <h4>${item.name}</h4>
-                                <p>Precio: $${item.price.toFixed(2)}</p>
-                                <div class="item-quantity">
-                                    <button class="quantity-btn minus" onclick="updateQuantity(${item.id}, -1)">-</button>
-                                    <span class="quantity">${item.quantity}</span>
-                                    <button class="quantity-btn plus" onclick="updateQuantity(${item.id}, 1)">+</button>
-                                </div>
-                            </div>
-                            <div class="item-actions">
-                                <button class="remove-btn" onclick="removeFromCart(${item.id})">Eliminar</button>
-                            </div>
-                        `;
-
-                        cartItemsContainer.appendChild(cartItem);
-                        total += item.price * item.quantity;
-                    });
-
-                    cartTotal.textContent = `Total: $${total.toFixed(2)}`;
-                })
-                .catch(error => console.error('Error al cargar el carrito:', error));
-        };
-
-        // Función para actualizar la cantidad de un elemento
-        const updateQuantity = (itemId, change) => {
-            fetch(`/cart/api/cart/${itemId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ change })
-            })
-            .then(() => {
-                loadCart();
-            })
-            .catch(error => console.error('Error al actualizar la cantidad:', error));
-        };
-
-        // Función para eliminar un elemento del carrito
-        const removeFromCart = (itemId) => {
-            fetch(`/cart/api/cart/${itemId}`, {
-                method: 'DELETE'
-            })
-            .then(() => {
-                loadCart();
-            })
-            .catch(error => console.error('Error al eliminar el elemento del carrito:', error));
-        };
-
-        // Cargar el carrito al cargar la página
         loadCart();
+    });
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const signInButton = document.querySelector('.signin-btn');
+        const signOutButton = document.getElementById('signout-button');
+
+        // Verificar el estado de autenticación
+        fetch('/auth/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.isAuthenticated) {
+                    signInButton.style.display = 'none';
+                    signOutButton.style.display = 'inline-block';
+                } else {
+                    signInButton.style.display = 'inline-block';
+                    signOutButton.style.display = 'none';
+                }
+            })
+            .catch(error => console.error('Error al verificar el estado de autenticación:', error));
+
+        // Manejar el cierre de sesión
+        signOutButton.addEventListener('click', () => {
+            fetch('/auth/logout', { method: 'POST' })
+                .then(() => {
+                    window.location.reload();
+                })
+                .catch(error => console.error('Error al cerrar sesión:', error));
+        });
+    });
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+
+        addToCartButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const itemId = button.getAttribute('data-item-id'); // Asegurarse de que este atributo esté presente en el HTML
+                const quantity = 1; // Cantidad predeterminada
+
+                if (!itemId) {
+                    console.error('El atributo data-item-id no está definido en el botón.');
+                    alert('Error: No se pudo identificar el elemento.');
+                    return;
+                }
+
+                fetch('/api/cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id_objeto: itemId, quantity })
+                })
+                    .then(response => {
+                        if (response.status === 401) {
+                            alert('Debe iniciar sesión para agregar elementos al carrito. Será redirigido a la página de inicio de sesión.');
+                            window.location.href = '/signin.html';
+                        } else if (response.status === 400) {
+                            alert('Solicitud inválida. Verifique los datos enviados.');
+                        } else if (response.ok) {
+                            alert('Elemento agregado al carrito.');
+                        } else {
+                            alert('Error al agregar el elemento al carrito.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al agregar al carrito:', error);
+                        alert('Ocurrió un error inesperado. Por favor, inténtelo de nuevo más tarde.');
+                    });
+            });
+        });
     });
     </script>
 </body>

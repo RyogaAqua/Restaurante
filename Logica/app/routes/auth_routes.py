@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..services.auth_service import AuthService  # Cambiar a import relativo
 from ..extensions import db  # Use the db instance from extensions.py
@@ -172,13 +172,6 @@ def register():
 def login():
     """
     Ruta para iniciar sesión.
-
-    Procesa una solicitud POST con las credenciales del usuario (correo electrónico y contraseña),
-    y devuelve un token de autenticación si las credenciales son válidas.
-
-    Returns:
-        Response: Respuesta JSON con un mensaje de éxito y el token de autenticación,
-                  o un mensaje de error en caso de fallo.
     """
     data = request.get_json()
     if not data or 'email' not in data or 'password' not in data:
@@ -195,17 +188,15 @@ def login():
         user = auth_service.validate_user(email, password)
         if user:
             login_user(user)  # Establecer la sesión del usuario
+            session['user_id'] = user.Id_Usuario  # Configurar manualmente el ID del usuario en la sesión
             logging.info(f"Inicio de sesión exitoso para el usuario: {email}")
             return jsonify({"message": "Inicio de sesión exitoso"}), 200
         else:
             logging.warning("Credenciales inválidas.")
             return jsonify({"error": "Credenciales inválidas"}), 401
-    except ValueError as e:
-        logging.warning(f"Error de validación durante el inicio de sesión: {e}")
-        return jsonify({"error": str(e)}), 400
     except Exception as e:
-        logging.error(f"Error inesperado durante el inicio de sesión: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": "Ocurrió un error inesperado", "details": str(e)}), 500
+        logging.error(f"Error durante el inicio de sesión: {e}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 @auth_bp.route('/login')
 def login_page():

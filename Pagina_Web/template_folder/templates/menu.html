@@ -104,61 +104,52 @@
             .then(response => response.json())
             .then(menu => {
                 const menuGrid = document.querySelector('.menu-grid');
-                const categoryButtons = document.querySelectorAll('.category-btn');
 
-                const renderMenu = (category) => {
-                    menuGrid.innerHTML = '';
+                menu.forEach(item => {
+                    const menuItem = document.createElement('div');
+                    menuItem.classList.add('menu-item');
 
-                    menu.forEach(item => {
-                        if (category === 'all' || item.category === category) {
-                            const menuItem = document.createElement('div');
-                            menuItem.classList.add('menu-item');
-                            menuItem.setAttribute('data-category', item.category);
+                    menuItem.innerHTML = `
+                        <div class="menu-item-img">
+                            <img src="${item.image_url}" alt="${item.name}">
+                        </div>
+                        <div class="menu-item-info">
+                            <h3>${item.name}</h3>
+                            <p>${item.calories ? item.calories + ' calories' : ''}</p>
+                            <div class="menu-item-footer">
+                                <span class="price">$${item.price.toFixed(2)}</span>
+                                <button class="add-to-cart-btn" data-item-id="${item.id}">Add to Cart</button>
+                            </div>
+                        </div>
+                    `;
 
-                            menuItem.innerHTML = `
-                                <div class="menu-item-img">
-                                    <img src="${item.image_url}" alt="${item.name}">
-                                </div>
-                                <div class="menu-item-info">
-                                    <h3>${item.name}</h3>
-                                    <p>${item.calories ? item.calories + ' calories' : ''}</p>
-                                    <div class="menu-item-footer">
-                                        <span class="price">$${item.price.toFixed(2)}</span>
-                                        <button class="add-to-cart">Add to Cart</button>
-                                    </div>
-                                </div>
-                            `;
+                    menuItem.querySelector('.add-to-cart-btn').addEventListener('click', () => {
+                        const itemId = item.id;
+                        const quantity = 1;
+                        const apiUrl = '/api/cart'; // Ruta esperada
 
-                            // Agregar evento al botón "Add to Cart"
-                            menuItem.querySelector('.add-to-cart').addEventListener('click', () => {
-                                fetch('/cart/api/cart', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify(item)
-                                })
-                                .then(response => response.json())
-                                .then(data => {
+                        console.log(`Enviando solicitud POST a: ${apiUrl}`);
+                        console.log(`Datos enviados: id_objeto=${itemId}, quantity=${quantity}`);
+
+                        fetch(apiUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ id_objeto: itemId, quantity })
+                        })
+                            .then(response => {
+                                console.log(`Respuesta recibida: ${response.status}`);
+                                if (response.ok) {
                                     alert(`${item.name} added to cart!`);
-                                })
-                                .catch(error => console.error('Error adding to cart:', error));
-                            });
-
-                            menuGrid.appendChild(menuItem);
-                        }
+                                } else {
+                                    alert('Failed to add item to cart.');
+                                }
+                            })
+                            .catch(error => console.error('Error adding to cart:', error));
                     });
-                };
 
-                renderMenu('all');
-
-                categoryButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        const category = button.getAttribute('data-category');
-                        categoryButtons.forEach(btn => btn.classList.remove('active'));
-                        button.classList.add('active');
-                        renderMenu(category);
-                    });
+                    menuGrid.appendChild(menuItem);
                 });
             })
             .catch(error => console.error('Error fetching menu:', error));

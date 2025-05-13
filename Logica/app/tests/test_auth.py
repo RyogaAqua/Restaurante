@@ -170,5 +170,14 @@ class TestSignIn(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertIn('Credenciales inválidas', response.get_json().get('error', ''))
 
+    def test_sign_in_with_valid_user(self):
+        """Probar el inicio de sesión con un usuario válido."""
+        response = self.client.post('/auth/login', json={
+            "email": "jade4@gmail.com",
+            "password": "Manny1234"
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Inicio de sesión exitoso", response.get_data(as_text=True))
+
 if __name__ == '__main__':
     unittest.main()
