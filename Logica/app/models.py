@@ -74,6 +74,7 @@ class MenuObjetos(db.Model):
     Categoria = Column(String(45), nullable=False, comment='Category of the item (e.g., Appetizer, Main, Drink)')
     Calorias = Column(Integer, comment='Calorie count for the item')
     Imagen_URL = Column(String(255), comment='URL or path to the menu item image')
+    Precio_Puntos = Column(Integer, nullable=True, comment='Precio del artículo en puntos (opcional)')
 
     # Relación inversa con OrdenItems
     orden_items = relationship('OrdenItems', back_populates='menu_objeto')

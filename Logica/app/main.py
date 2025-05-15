@@ -20,6 +20,7 @@ from .routes import (
 from Logica.app.routes.menu_routes import menu_routes
 from Logica.app.routes.cart_routes import bp as cart_bp  # Importar el blueprint con el nombre correcto
 from Logica.app.routes.auth_routes import auth_bp
+from Logica.app.routes.point_store_routes import bp as point_store_bp
 import os
 import logging
 import traceback
@@ -86,6 +87,9 @@ def create_app():
     # Registrar el blueprint de autenticación con un prefijo explícito
     logging.debug("Registrando el Blueprint auth_bp con prefijo '/auth'")
     app.register_blueprint(auth_bp, url_prefix='/auth', name='auth_blueprint')
+
+    # Registrar el blueprint de point_store_routes
+    app.register_blueprint(point_store_bp)
 
     # Agrega manejadores globales de errores
     register_error_handlers(app)

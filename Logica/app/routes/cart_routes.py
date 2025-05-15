@@ -36,8 +36,12 @@ def get_cart():
         'quantity': item.CartItem.Cantidad
     } for item in cart_items]
 
-    logger.debug(f"Datos enviados al frontend: {response}")
-    return jsonify(response)
+    # Calcular el total y los puntos a ganar
+    total = sum(item['price'] * item['quantity'] for item in response)
+    puntos = int(total * 0.10)
+
+    logger.debug(f"Datos enviados al frontend: {response}, total: {total}, puntos: {puntos}")
+    return jsonify({'items': response, 'total': total, 'puntos': puntos})
 
 @bp.route('', methods=['POST'])
 def add_to_cart():
@@ -114,3 +118,45 @@ def remove_from_cart(item_id):
     logger.debug("Elemento eliminado del carrito y cambios confirmados en la base de datos.")
 
     return jsonify({'message': 'Elemento eliminado del carrito'})
+
+@bp.route('/checkout', methods=['POST'])
+def checkout_cart():
+    """Procesar el pago del carrito, guardar la orden y sumar puntos al usuario."""
+    from Logica.app.models import CartItem, db, MenuObjetos, PuntosBalance
+    from flask_login import current_user
+    import datetime
+
+    cart_items = db.session.query(CartItem).filter_by(Id_Usuario=current_user.Id_Usuario).all()
+    if not cart_items:
+        return jsonify({'message': 'El carrito está vacío.'}), 400
+
+    total = 0
+    for item in cart_items:
+        menu_obj = db.session.query(MenuObjetos).filter_by(Id_Objeto=item.Id_Objeto).first()
+        if menu_obj:
+            total += item.Cantidad * float(menu_obj.Precio)
+
+    # Calcular puntos ganados (10% del total)
+    puntos_ganados = int(total * 0.10)
+
+    # Sumar puntos al usuario en puntos_balance
+    puntos_row = db.session.query(PuntosBalance).filter_by(Id_Usuario=current_user.Id_Usuario).first()
+    if puntos_row:
+        puntos_row.Puntos_Total += puntos_ganados
+        puntos_row.Actualizado_En = datetime.datetime.now()
+    else:
+        puntos_row = PuntosBalance(
+            Id_Usuario=current_user.Id_Usuario,
+            Puntos_Total=puntos_ganados,
+            Redimidos_Total=0,
+            Actualizado_En=datetime.datetime.now()
+        )
+        db.session.add(puntos_row)
+    db.session.commit()
+
+    # Limpiar el carrito
+    for item in cart_items:
+        db.session.delete(item)
+    db.session.commit()
+
+    return jsonify({'message': f'¡Pago procesado exitosamente! Has ganado {puntos_ganados} puntos.'})

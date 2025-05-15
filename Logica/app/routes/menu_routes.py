@@ -16,7 +16,7 @@ def get_menu():
     """
     Endpoint para obtener el menú desde la base de datos.
     """
-    menu_items = MenuObjetos.query.all()
+    menu_items = MenuObjetos.query.filter(MenuObjetos.Precio != None).all()
     menu = [
         {
             "id": item.Id_Objeto,

@@ -20,13 +20,14 @@
             <ul class="nav-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="menu.html">Menu</a></li>
-                <li><a href="gallery.html">Gallery</a></li>
+                <li><a href="point_store.html">Point Store</a></li>
                 <li><a href="events.html">Events</a></li>
                 <li><a href="blog.html" class="active">Blog</a></li>
                 <li><a href="contact.html">Contact</a></li>
             </ul>
             <div class="nav-buttons">
                 <a href="cart.html" class="cart-btn"><i class="fas fa-shopping-cart"></i></a>
+                <span id="user-points-navbar" style="margin-left: 15px; font-weight: bold;"></span>
                 <a href="signin.html" class="signin-btn">Sign In</a>
                 <a href="#" id="signout-button" class="signin-btn" style="display: none;">Sign Out</a>
             </div>
@@ -163,5 +164,20 @@
     </footer>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+    function updateUserPointsNavbar() {
+        fetch('/api/point_store/user_points')
+            .then(response => response.json())
+            .then(data => {
+                let userPointsNav = document.getElementById('user-points-navbar');
+                if (userPointsNav) {
+                    userPointsNav.textContent = `Points: ${data.points}`;
+                }
+            });
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        updateUserPointsNavbar();
+    });
+    </script>
 </body>
 </html>
