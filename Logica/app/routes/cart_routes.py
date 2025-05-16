@@ -28,40 +28,46 @@ def get_cart():
     cart_items = db.session.query(CartItem, MenuObjetos).join(MenuObjetos, CartItem.Id_Objeto == MenuObjetos.Id_Objeto).filter(CartItem.Id_Usuario == current_user.Id_Usuario).all()
 
     # Construir la respuesta con los datos necesarios
-    response = [{
-        'id': item.CartItem.Id_Cart,
-        'name': item.MenuObjetos.Nombre_Objeto,
-        'price': item.MenuObjetos.Precio,
-        'image_url': item.MenuObjetos.Imagen_URL,
-        'quantity': item.CartItem.Cantidad
-    } for item in cart_items]
+    response = []
+    for item in cart_items:
+        use_points = getattr(item.CartItem, 'Use_Points', False)
+        # Siempre incluir ambos campos, aunque sean None
+        response.append({
+            'id': item.CartItem.Id_Cart,
+            'name': item.MenuObjetos.Nombre_Objeto,
+            'price': item.MenuObjetos.Precio if not use_points else None,
+            'points': item.MenuObjetos.Precio_Puntos if use_points else None,
+            'image_url': item.MenuObjetos.Imagen_URL,
+            'quantity': item.CartItem.Cantidad
+        })
 
-    # Calcular el total y los puntos a ganar
-    total = sum(item['price'] * item['quantity'] for item in response)
+    # Calcular el total en dinero y puntos (evita error de None)
+    total = sum((item['price'] or 0) * item['quantity'] for item in response)
+    total_points = sum((item['points'] or 0) * item['quantity'] for item in response)
     puntos = int(total * 0.10)
 
-    logger.debug(f"Datos enviados al frontend: {response}, total: {total}, puntos: {puntos}")
-    return jsonify({'items': response, 'total': total, 'puntos': puntos})
+    logger.debug(f"Datos enviados al frontend: {response}, total: {total}, puntos: {puntos}, total_points: {total_points}")
+    return jsonify({'items': response, 'total': total, 'puntos': puntos, 'total_points': total_points})
 
 @bp.route('', methods=['POST'])
 def add_to_cart():
-    """Agregar un elemento al carrito del usuario autenticado."""
     data = request.get_json()
     id_objeto = data.get('id_objeto')
     quantity = data.get('quantity', 1)
+    use_points = data.get('use_points', False)
 
     if not id_objeto:
         logger.debug("Faltan campos requeridos: id_objeto")
         return jsonify({'error': 'Faltan campos requeridos: id_objeto'}), 400
 
     try:
-        logger.debug(f"Intentando agregar al carrito: id_objeto={id_objeto}, quantity={quantity}")
-        cart_item = CartItem.query.filter_by(Id_Usuario=current_user.Id_Usuario, Id_Objeto=id_objeto).first()
+        logger.debug(f"Intentando agregar al carrito: id_objeto={id_objeto}, quantity={quantity}, use_points={use_points}")
+        cart_item = CartItem.query.filter_by(Id_Usuario=current_user.Id_Usuario, Id_Objeto=id_objeto, Use_Points=use_points).first()
         if cart_item:
             cart_item.Cantidad += quantity
             logger.debug(f"Actualizando cantidad del item {id_objeto} a {cart_item.Cantidad}")
         else:
-            cart_item = CartItem(Id_Usuario=current_user.Id_Usuario, Id_Objeto=id_objeto, Cantidad=quantity)
+            cart_item = CartItem(Id_Usuario=current_user.Id_Usuario, Id_Objeto=id_objeto, Cantidad=quantity, Use_Points=use_points)
             db.session.add(cart_item)
             logger.debug(f"Agregando nuevo item al carrito: {cart_item}")
 

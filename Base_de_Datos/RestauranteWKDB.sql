@@ -60,18 +60,30 @@ CREATE TABLE IF NOT EXISTS cart (
     Id_Objeto INT NOT NULL,
     Cantidad INT NOT NULL DEFAULT 1,
     Agregado_En TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Use_Points BOOLEAN NOT NULL DEFAULT 0,
     FOREIGN KEY (Id_Usuario) REFERENCES usuarios(Id_Usuario),
     FOREIGN KEY (Id_Objeto) REFERENCES menu_objetos(Id_Objeto)
 );
 
--- Insertar datos iniciales en menu_objetos (con columna Precio_Puntos)
+-- Limpiar la tabla antes de insertar para evitar duplicados
+SET SQL_SAFE_UPDATES = 0;
+DELETE FROM cart;
+DELETE FROM menu_objetos;
+SET SQL_SAFE_UPDATES = 1;
+
+-- Insertar datos iniciales en menu_objetos (cada objeto solo tiene precio en dinero o en puntos, nunca ambos)
 INSERT INTO menu_objetos (Nombre_Objeto, Precio, Precio_Puntos, Categoria, Calorias, Imagen_URL) VALUES
-('Big Burger', 12.99, 120, 'burgers', 800, '/static/image/big_burger.jpg'),
-('Chicken Wing', 8.99, 80, 'chicken', 600, '/static/image/chicken_wing.jpg'),
-('Lemonade', 3.99, 40, 'drinks', 150, '/static/image/lemonade.jpg'),
+('Big Burger', 12.99, NULL, 'burgers', 800, '/static/image/big_burger.jpg'),
+('Big Burger (Puntos)', NULL, 120, 'burgers', 800, '/static/image/big_burger.jpg'),
+('Chicken Wing', 8.99, NULL, 'chicken', 600, '/static/image/chicken_wing.jpg'),
+('Chicken Wing (Puntos)', NULL, 80, 'chicken', 600, '/static/image/chicken_wing.jpg'),
+('Lemonade', 3.99, NULL, 'drinks', 150, '/static/image/lemonade.jpg'),
+('Lemonade (Puntos)', NULL, 40, 'drinks', 150, '/static/image/lemonade.jpg'),
 ('Nuggets', 6.99, NULL, 'chicken', 400, '/static/image/nuggets.png'),
 ('Small Burger', 9.99, NULL, 'burgers', 500, '/static/image/small_burger.png'),
 ('Soda Drink', 2.99, NULL, 'drinks', 200, '/static/image/soda_drink.jpg'),
-('Sundae', 4.99, 50, 'desserts', 300, '/static/image/sundae.jpg'),
-('Vaso Azul', NULL, 40, 'accessories', NULL, '/static/image/vaso.jpg');
+('Sundae', 4.99, NULL, 'desserts', 300, '/static/image/sundae.jpg'),
+('Sundae (Puntos)', NULL, 50, 'desserts', 300, '/static/image/sundae.jpg'),
+('Apple Pie', 5.99, NULL, 'desserts', 350, '/static/image/apple_pie.jpg'),
+('Vaso Azul', NULL, 40, 'accesorios', NULL, '/static/image/vaso.jpg');
 

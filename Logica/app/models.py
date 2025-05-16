@@ -118,5 +118,6 @@ class CartItem(db.Model):
     Id_Objeto = db.Column(db.Integer, nullable=False)
     Cantidad = db.Column(db.Integer, nullable=False, default=1)
     Agregado_En = db.Column(db.TIMESTAMP, nullable=True, server_default=db.func.current_timestamp())
+    Use_Points = db.Column(db.Boolean, nullable=False, default=False)  # <--- ESTA LÍNEA ES OBLIGATORIA
 
     user = db.relationship('Usuarios', back_populates='cart_items')

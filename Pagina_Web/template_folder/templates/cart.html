@@ -56,6 +56,57 @@
     const cartItemsContainer = document.getElementById('cart-items');
     const cartTotal = document.getElementById('cart-total');
 
+    // Función para mostrar precio en puntos o en dinero según corresponda
+    function renderCartItems(items) {
+        const cartItemsContainer = document.getElementById('cart-items');
+        cartItemsContainer.innerHTML = '';
+        // Mostrar cada producto solo una vez por id y tipo (dinero/puntos)
+        const unique = new Set();
+        items.forEach(item => {
+            // Clave única: id_objeto + tipo (dinero/puntos)
+            const key = `${item.id}_${item.points ? 'puntos' : 'dinero'}`;
+            if (unique.has(key)) return;
+            unique.add(key);
+            let priceDisplay = '';
+            if (item.points && (!item.price || item.price === 0)) {
+                priceDisplay = `<span class="cart-item-points">${item.points} points</span>`;
+            } else if (item.price !== null && item.price !== undefined) {
+                priceDisplay = `<span class="cart-item-price">$${item.price.toFixed(2)}</span>`;
+            } else {
+                priceDisplay = `<span class="cart-item-price">-</span>`;
+            }
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <div class="cart-item">
+                    <img src="${item.image_url}" alt="${item.name}" class="cart-item-img" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; margin-right: 10px;">
+                    <div class="cart-item-info">
+                        <h4>${item.name}</h4>
+                        ${priceDisplay}
+                        <span class="cart-item-qty">Qty: ${item.quantity}</span>
+                        <button class="cart-item-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+                        <button class="cart-item-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
+                        <button class="cart-item-btn" onclick="removeFromCart(${item.id})">Remove</button>
+                    </div>
+                </div>
+            `;
+            cartItemsContainer.appendChild(div);
+        });
+    }
+
+    // Mostrar total de puntos a gastar
+    function renderCartTotals(data) {
+        const cartTotalsDiv = document.getElementById('cart-totals');
+        if (!cartTotalsDiv) {
+            const newDiv = document.createElement('div');
+            newDiv.id = 'cart-totals';
+            newDiv.style.margin = '20px 0';
+            document.querySelector('.cart-section .container').appendChild(newDiv);
+        }
+        // Si no existe data.total_points, mostrar 0
+        const totalPoints = (typeof data.total_points !== 'undefined' && data.total_points !== null) ? data.total_points : 0;
+        document.getElementById('cart-totals').innerHTML = `<strong>Total points to spend: ${totalPoints}</strong>`;
+    }
+
     // Función para actualizar la cantidad de un elemento
     const updateQuantity = (itemId, change) => {
         console.log(`Actualizando cantidad: itemId=${itemId}, change=${change}`);
@@ -103,36 +154,18 @@
         fetch('/api/cart')
             .then(response => response.json())
             .then(data => {
+                renderCartItems(data.items);
+                renderCartTotals(data);
                 const cart = data.items;
-                cartItemsContainer.innerHTML = '';
                 let total = 0;
 
                 console.log('Respuesta del backend:', data);
 
+                // Sumar al total solo si es dinero
                 cart.forEach(item => {
-                    const cartItem = document.createElement('div');
-                    cartItem.classList.add('cart-item');
-
-                    cartItem.innerHTML = `
-                        <div class="item-img">
-                            <img src="${item.image_url}" alt="${item.name}">
-                        </div>
-                        <div class="item-details">
-                            <h4>${item.name}</h4>
-                            <p>Precio: $${item.price.toFixed(2)}</p>
-                            <div class="item-quantity">
-                                <button class="quantity-btn minus" onclick="updateQuantity(${item.id}, -1)">-</button>
-                                <span class="quantity">${item.quantity}</span>
-                                <button class="quantity-btn plus" onclick="updateQuantity(${item.id}, 1)">+</button>
-                            </div>
-                        </div>
-                        <div class="item-actions">
-                            <button class="remove-btn" onclick="removeFromCart(${item.id})">Eliminar</button>
-                        </div>
-                    `;
-
-                    cartItemsContainer.appendChild(cartItem);
-                    total += item.price * item.quantity;
+                    if (item.price !== null && item.price !== undefined) {
+                        total += item.price * item.quantity;
+                    }
                 });
 
                 cartTotal.textContent = `Total: $${data.total.toFixed(2)}`;
@@ -148,15 +181,19 @@
             .catch(error => console.error('Error al cargar el carrito:', error));
     };
 
-    // Función para simular el pago y guardar la orden
+    // Función para simular el pago y validar puntos
     function proceedToCheckout() {
         fetch('/api/cart/checkout', {
             method: 'POST',
         })
         .then(response => response.json())
         .then(data => {
-            alert(data.message);
-            loadCart();
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert(data.message);
+                loadCart();
+            }
         })
         .catch(error => {
             alert('Error al procesar el pago.');
@@ -166,6 +203,15 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         loadCart();
+        let checkoutBtn = document.getElementById('checkout-btn');
+        if (!checkoutBtn) {
+            checkoutBtn = document.createElement('button');
+            checkoutBtn.id = 'checkout-btn';
+            checkoutBtn.textContent = 'Checkout';
+            checkoutBtn.style.margin = '20px 0';
+            document.querySelector('.cart-section .container').appendChild(checkoutBtn);
+        }
+        checkoutBtn.onclick = proceedToCheckout;
     });
     </script>
 
