@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,47 +37,47 @@
     <!-- Cart Section -->
     <section class="cart-section">
         <div class="container">
-            <h2>Tu Carrito <i class="fas fa-shopping-cart"></i></h2>
+            <h2>Your Cart <i class="fas fa-shopping-cart"></i></h2>
             <div class="cart-container">
                 <div class="cart-items" id="cart-items">
-                    <!-- Los elementos del carrito se cargarán dinámicamente aquí -->
+                    <!-- Cart items will be loaded here dynamically -->
                 </div>
                 <div class="cart-summary">
-                    <h3>Resumen del Pedido</h3>
-                    <p id="cart-total">Total: $0.00</p>
-                    <button class="checkout-btn" onclick="proceedToCheckout()">Proceder al Pago</button>
+                    <h3>Order Summary</h3>
                 </div>
             </div>
             <div class="cart-delivery-info" style="margin-top: 24px; padding: 18px; background: #f8f8f8; border-radius: 10px;">
-                <h3><i class="fas fa-clock"></i> Tiempo Estimado</h3>
-                <p><strong>Entrega estimada:</strong> 30-45 minutos</p>
-                <h4 style="margin-top: 16px;"><i class="fas fa-map-marker-alt"></i> Dirección de Entrega</h4>
+                <h3><i class="fas fa-clock"></i> Estimated Time</h3>
+                <p><strong>Estimated delivery:</strong> 30-45 minutes</p>
+                <h4 style="margin-top: 16px;"><i class="fas fa-map-marker-alt"></i> Delivery Address</h4>
                 <div class="mock-delivery-form" style="margin-top: 8px;">
-                    <label for="mock-address">Dirección:</label>
-                    <input id="mock-address" type="text" placeholder="Ej: Calle 123, Colonia, Ciudad" style="width: 100%; padding: 6px; margin-bottom: 8px;">
-                    <label for="mock-phone">Teléfono de contacto:</label>
-                    <input id="mock-phone" type="text" placeholder="Ej: 555-123-4567" style="width: 100%; padding: 6px; margin-bottom: 8px;">
-                    <label for="mock-notes">Notas para el repartidor:</label>
-                    <textarea id="mock-notes" placeholder="Ej: Tocar el timbre, dejar en portón, etc." style="width: 100%; padding: 6px;"></textarea>
+                    <label for="mock-address">Address:</label>
+                    <input id="mock-address" type="text" placeholder="e.g. 123 Main St, Neighborhood, City" style="width: 100%; padding: 6px; margin-bottom: 8px;">
+                    <label for="mock-phone">Contact phone:</label>
+                    <input id="mock-phone" type="text" placeholder="e.g. 555-123-4567" style="width: 100%; padding: 6px; margin-bottom: 8px;">
+                    <label for="mock-notes">Notes for the delivery person:</label>
+                    <textarea id="mock-notes" placeholder="e.g. Ring the bell, leave at the gate, etc." style="width: 100%; padding: 6px;"></textarea>
                 </div>
             </div>
+            <div id="cart-totals"></div>
+            <button class="checkout-btn" style="margin-top: 24px; width: 100%; font-size: 1.1em; padding: 12px 0;" onclick="proceedToCheckout()">Proceed to Payment</button>
         </div>
     </section>
 
     <script>
-    // Definir las variables globales para el carrito
+    // Define global variables for the cart
     const cartItemsContainer = document.getElementById('cart-items');
     const cartTotal = document.getElementById('cart-total');
 
-    // Función para mostrar precio en puntos o en dinero según corresponda
+    // Function to display price in points or money as appropriate
     function renderCartItems(items) {
         const cartItemsContainer = document.getElementById('cart-items');
         cartItemsContainer.innerHTML = '';
-        // Mostrar cada producto solo una vez por id y tipo (dinero/puntos)
+        // Show each product only once by id and type (money/points)
         const unique = new Set();
         items.forEach(item => {
-            // Clave única: id_objeto + tipo (dinero/puntos)
-            const key = `${item.id}_${item.points ? 'puntos' : 'dinero'}`;
+            // Unique key: object_id + type (points/money)
+            const key = `${item.id}_${item.points ? 'points' : 'money'}`;
             if (unique.has(key)) return;
             unique.add(key);
             let priceDisplay = '';
@@ -106,23 +106,29 @@
         });
     }
 
-    // Mostrar total de puntos a gastar
+    // Show totals at the end of the page
     function renderCartTotals(data) {
-        const cartTotalsDiv = document.getElementById('cart-totals');
+        let cartTotalsDiv = document.getElementById('cart-totals');
         if (!cartTotalsDiv) {
-            const newDiv = document.createElement('div');
-            newDiv.id = 'cart-totals';
-            newDiv.style.margin = '20px 0';
-            document.querySelector('.cart-section .container').appendChild(newDiv);
+            cartTotalsDiv = document.createElement('div');
+            cartTotalsDiv.id = 'cart-totals';
+            cartTotalsDiv.style.margin = '20px 0';
+            document.querySelector('.cart-section .container').appendChild(cartTotalsDiv);
         }
-        // Si no existe data.total_points, mostrar 0
+        // If data.total_points does not exist, show 0
         const totalPoints = (typeof data.total_points !== 'undefined' && data.total_points !== null) ? data.total_points : 0;
-        document.getElementById('cart-totals').innerHTML = `<strong>Total points to spend: ${totalPoints}</strong>`;
+        const totalPrice = (typeof data.total !== 'undefined' && data.total !== null) ? data.total.toFixed(2) : '0.00';
+        const pointsEarned = (typeof data.puntos !== 'undefined' && data.puntos !== null) ? data.puntos : 0;
+        cartTotalsDiv.innerHTML = `
+            <strong style="font-size: 1.2em;">Total price: $${totalPrice}</strong><br>
+            <strong style="font-size: 1.2em;">Total points to spend: ${totalPoints}</strong><br>
+            <strong style="font-size: 1.2em;">Points to earn: ${pointsEarned}</strong>
+        `;
     }
 
-    // Función para actualizar la cantidad de un elemento
+    // Function to update the quantity of an item
     const updateQuantity = (itemId, change) => {
-        console.log(`Actualizando cantidad: itemId=${itemId}, change=${change}`);
+        console.log(`Updating quantity: itemId=${itemId}, change=${change}`);
 
         fetch(`/api/cart/${itemId}`, {
             method: 'PATCH',
@@ -133,36 +139,36 @@
         })
         .then(response => {
             if (!response.ok) {
-                console.error('Error al actualizar la cantidad:', response.statusText);
+                console.error('Error updating quantity:', response.statusText);
             }
             return response.json();
         })
         .then(() => {
             loadCart();
         })
-        .catch(error => console.error('Error al actualizar la cantidad:', error));
+        .catch(error => console.error('Error updating quantity:', error));
     };
 
-    // Función para eliminar un elemento del carrito
+    // Function to remove an item from the cart
     const removeFromCart = (itemId) => {
-        console.log(`Eliminando elemento: itemId=${itemId}`);
+        console.log(`Removing item: itemId=${itemId}`);
 
         fetch(`/api/cart/${itemId}`, {
             method: 'DELETE'
         })
         .then(response => {
             if (!response.ok) {
-                console.error('Error al eliminar el elemento:', response.statusText);
+                console.error('Error removing item:', response.statusText);
             }
             return response.json();
         })
         .then(() => {
             loadCart();
         })
-        .catch(error => console.error('Error al eliminar el elemento:', error));
+        .catch(error => console.error('Error removing item:', error));
     };
 
-    // Función para cargar los elementos del carrito
+    // Function to load cart items
     const loadCart = () => {
         fetch('/api/cart')
             .then(response => response.json())
@@ -172,29 +178,21 @@
                 const cart = data.items;
                 let total = 0;
 
-                console.log('Respuesta del backend:', data);
+                console.log('Backend response:', data);
 
-                // Sumar al total solo si es dinero
+                // Add to total only if it's money
                 cart.forEach(item => {
                     if (item.price !== null && item.price !== undefined) {
                         total += item.price * item.quantity;
                     }
                 });
 
-                cartTotal.textContent = `Total: $${data.total.toFixed(2)}`;
-                // Mostrar los puntos a ganar
-                let puntosDiv = document.getElementById('cart-points');
-                if (!puntosDiv) {
-                    puntosDiv = document.createElement('p');
-                    puntosDiv.id = 'cart-points';
-                    cartTotal.parentNode.insertBefore(puntosDiv, cartTotal.nextSibling);
-                }
-                puntosDiv.textContent = `Puntos a ganar: ${data.puntos}`;
+                // Remove the total and points to earn from the top part
             })
-            .catch(error => console.error('Error al cargar el carrito:', error));
+            .catch(error => console.error('Error loading cart:', error));
     };
 
-    // Función para simular el pago y validar puntos
+    // Function to simulate payment and validate points
     function proceedToCheckout() {
         fetch('/api/cart/checkout', {
             method: 'POST',
@@ -209,22 +207,13 @@
             }
         })
         .catch(error => {
-            alert('Error al procesar el pago.');
+            alert('Error processing payment.');
             console.error(error);
         });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         loadCart();
-        let checkoutBtn = document.getElementById('checkout-btn');
-        if (!checkoutBtn) {
-            checkoutBtn = document.createElement('button');
-            checkoutBtn.id = 'checkout-btn';
-            checkoutBtn.textContent = 'Checkout';
-            checkoutBtn.style.margin = '20px 0';
-            document.querySelector('.cart-section .container').appendChild(checkoutBtn);
-        }
-        checkoutBtn.onclick = proceedToCheckout;
     });
     </script>
 
@@ -233,7 +222,7 @@
         const signInButton = document.querySelector('.signin-btn');
         const signOutButton = document.getElementById('signout-button');
 
-        // Verificar el estado de autenticación
+        // Check authentication status
         fetch('/auth/status')
             .then(response => response.json())
             .then(data => {
@@ -245,15 +234,15 @@
                     signOutButton.style.display = 'none';
                 }
             })
-            .catch(error => console.error('Error al verificar el estado de autenticación:', error));
+            .catch(error => console.error('Error checking authentication status:', error));
 
-        // Manejar el cierre de sesión
+        // Handle sign out
         signOutButton.addEventListener('click', () => {
             fetch('/auth/logout', { method: 'POST' })
                 .then(() => {
                     window.location.reload();
                 })
-                .catch(error => console.error('Error al cerrar sesión:', error));
+                .catch(error => console.error('Error signing out:', error));
         });
     });
     </script>
@@ -264,12 +253,12 @@
 
         addToCartButtons.forEach(button => {
             button.addEventListener('click', () => {
-                const itemId = button.getAttribute('data-item-id'); // Asegurarse de que este atributo esté presente en el HTML
-                const quantity = 1; // Cantidad predeterminada
+                const itemId = button.getAttribute('data-item-id'); // Ensure this attribute is present in the HTML
+                const quantity = 1; // Default quantity
 
                 if (!itemId) {
-                    console.error('El atributo data-item-id no está definido en el botón.');
-                    alert('Error: No se pudo identificar el elemento.');
+                    console.error('The data-item-id attribute is not defined on the button.');
+                    alert('Error: Could not identify the item.');
                     return;
                 }
 
@@ -282,19 +271,19 @@
                 })
                     .then(response => {
                         if (response.status === 401) {
-                            alert('Debe iniciar sesión para agregar elementos al carrito. Será redirigido a la página de inicio de sesión.');
+                            alert('You must sign in to add items to the cart. You will be redirected to the login page.');
                             window.location.href = '/signin.html';
                         } else if (response.status === 400) {
-                            alert('Solicitud inválida. Verifique los datos enviados.');
+                            alert('Invalid request. Please check the data sent.');
                         } else if (response.ok) {
-                            alert('Elemento agregado al carrito.');
+                            alert('Item added to cart.');
                         } else {
-                            alert('Error al agregar el elemento al carrito.');
+                            alert('Error adding item to cart.');
                         }
                     })
                     .catch(error => {
-                        console.error('Error al agregar al carrito:', error);
-                        alert('Ocurrió un error inesperado. Por favor, inténtelo de nuevo más tarde.');
+                        console.error('Error adding to cart:', error);
+                        alert('An unexpected error occurred. Please try again later.');
                     });
             });
         });
