@@ -29,6 +29,7 @@ document.getElementById('signup-form').addEventListener('submit', async (event) 
         const result = await response.json();
         if (response.status === 201) {
             alert('User registered successfully!');
+            window.location.href = 'signin.html'; // Redirigir al usuario a la página de inicio de sesión
         } else {
             alert(result.error || 'Registration failed.');
         }

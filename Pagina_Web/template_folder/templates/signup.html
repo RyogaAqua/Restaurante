@@ -58,7 +58,7 @@
 
                 <div class="form-group">
                     <label for="Telefono">Phone</label>
-                    <input type="text" id="Telefono" name="Telefono" required>
+                    <input type="text" id="Telefono" name="Telefono" required maxlength="12" pattern="[0-9\-]+">
                 </div>
 
                 <div class="form-group">
@@ -126,10 +126,24 @@
             updateUserPointsNavbar();
         });
 
-        document.getElementById('signup-form').addEventListener('submit', async function(event) {
-            event.preventDefault(); // Evitar el envío predeterminado del formulario
+        // Formatear el teléfono en tiempo real
+        document.getElementById('Telefono').addEventListener('input', function(e) {
+            let value = this.value.replace(/[^0-9]/g, ''); // Solo números
+            if (value.length > 10) value = value.slice(0, 10); // Máximo 10 dígitos
+            let formatted = value;
+            if (value.length > 6) {
+                formatted = value.slice(0,3) + '-' + value.slice(3,6) + '-' + value.slice(6);
+            } else if (value.length > 3) {
+                formatted = value.slice(0,3) + '-' + value.slice(3);
+            }
+            this.value = formatted;
+        });
 
+        document.getElementById('signup-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
             const formData = new FormData(this);
+            // Limpiar el teléfono antes de enviar (solo números)
+            formData.set('Telefono', formData.get('Telefono').replace(/[^0-9]/g, ''));
             const data = Object.fromEntries(formData.entries());
 
             try {
@@ -145,6 +159,7 @@
 
                 if (response.ok) {
                     alert('User registered successfully!');
+                    window.location.href = 'signin.html'; // Redirigir al usuario a la página de inicio de sesión
                 } else {
                     alert(`Error: ${result.error || result.message}`);
                 }
