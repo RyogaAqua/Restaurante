@@ -59,6 +59,7 @@ Restaurante/
 ## License
 This project is for educational purposes.
 
-## Link de un video explicando el proyecto en YouTube
-https://youtu.be/1Xa00wyyTdM 
+## Video Demo
+
+[Watch a video explaining the project on YouTube](https://youtu.be/1Xa00wyyTdM)
 
