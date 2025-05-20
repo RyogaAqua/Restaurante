@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart - BurgerRush Restaurant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">BurgerRush</a>
+            <div class="menu-toggle" id="mobile-menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="menu.html">Menu</a></li>
+                <li><a href="point_store.html">Point Store</a></li>
+                <li><a href="events.html">Events</a></li>
+                <li><a href="blog.html">Blog</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            <div class="nav-buttons">
+                <a href="cart.html" class="cart-btn active"><i class="fas fa-shopping-cart"></i></a>
+                <a href="signin.html" class="signin-btn">Sign In</a>
+                <a href="#" id="signout-button" class="signin-btn" style="display: none;">Sign Out</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Cart Section -->
+    <section class="cart-section">
+        <div class="container">
+            <h2>Your Cart <i class="fas fa-shopping-cart"></i></h2>
+            <div class="cart-container">
+                <div class="cart-items" id="cart-items">
+                    <!-- Cart items will be loaded here dynamically -->
+                </div>
+                <div class="cart-summary">
+                    <h3>Order Summary</h3>
+                </div>
+            </div>
+            <div class="cart-delivery-info" style="margin-top: 24px; padding: 18px; background: #f8f8f8; border-radius: 10px;">
+                <h3><i class="fas fa-clock"></i> Estimated Time</h3>
+                <p><strong>Estimated delivery:</strong> 30-45 minutes</p>
+                <h4 style="margin-top: 16px;"><i class="fas fa-map-marker-alt"></i> Delivery Address</h4>
+                <div class="mock-delivery-form" style="margin-top: 8px;">
+                    <label for="mock-address">Address:</label>
+                    <input id="mock-address" type="text" placeholder="e.g. 123 Main St, Neighborhood, City" style="width: 100%; padding: 6px; margin-bottom: 8px;">
+                    <label for="mock-phone">Contact phone:</label>
+                    <input id="mock-phone" type="text" placeholder="e.g. 555-123-4567" style="width: 100%; padding: 6px; margin-bottom: 8px;">
+                    <label for="mock-notes">Notes for the delivery person:</label>
+                    <textarea id="mock-notes" placeholder="e.g. Ring the bell, leave at the gate, etc." style="width: 100%; padding: 6px;"></textarea>
+                </div>
+            </div>
+            <div id="cart-totals"></div>
+            <button class="checkout-btn" style="margin-top: 24px; width: 100%; font-size: 1.1em; padding: 12px 0;" onclick="proceedToCheckout()">Proceed to Payment</button>
+        </div>
+    </section>
+
+    <script>
+    // Define global variables for the cart
+    const cartItemsContainer = document.getElementById('cart-items');
+    const cartTotal = document.getElementById('cart-total');
+
+    // Function to display price in points or money as appropriate
+    function renderCartItems(items) {
+        const cartItemsContainer = document.getElementById('cart-items');
+        cartItemsContainer.innerHTML = '';
+        // Show each product only once by id and type (money/points)
+        const unique = new Set();
+        items.forEach(item => {
+            // Unique key: object_id + type (points/money)
+            const key = `${item.id}_${item.points ? 'points' : 'money'}`;
+            if (unique.has(key)) return;
+            unique.add(key);
+            let priceDisplay = '';
+            if (item.points && (!item.price || item.price === 0)) {
+                priceDisplay = `<span class="cart-item-points">${item.points} points</span>`;
+            } else if (item.price !== null && item.price !== undefined) {
+                priceDisplay = `<span class="cart-item-price">$${item.price.toFixed(2)}</span>`;
+            } else {
+                priceDisplay = `<span class="cart-item-price">-</span>`;
+            }
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <div class="cart-item">
+                    <img src="${item.image_url}" alt="${item.name}" class="cart-item-img" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; margin-right: 10px;">
+                    <div class="cart-item-info">
+                        <h4>${item.name}</h4>
+                        ${priceDisplay}
+                        <span class="cart-item-qty">Qty: ${item.quantity}</span>
+                        <button class="cart-item-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+                        <button class="cart-item-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
+                        <button class="cart-item-btn" onclick="removeFromCart(${item.id})">Remove</button>
+                    </div>
+                </div>
+            `;
+            cartItemsContainer.appendChild(div);
+        });
+    }
+
+    // Show totals at the end of the page
+    function renderCartTotals(data) {
+        let cartTotalsDiv = document.getElementById('cart-totals');
+        if (!cartTotalsDiv) {
+            cartTotalsDiv = document.createElement('div');
+            cartTotalsDiv.id = 'cart-totals';
+            cartTotalsDiv.style.margin = '20px 0';
+            document.querySelector('.cart-section .container').appendChild(cartTotalsDiv);
+        }
+        // If data.total_points does not exist, show 0
+        const totalPoints = (typeof data.total_points !== 'undefined' && data.total_points !== null) ? data.total_points : 0;
+        const totalPrice = (typeof data.total !== 'undefined' && data.total !== null) ? data.total.toFixed(2) : '0.00';
+        const pointsEarned = (typeof data.puntos !== 'undefined' && data.puntos !== null) ? data.puntos : 0;
+        cartTotalsDiv.innerHTML = `
+            <strong style="font-size: 1.2em;">Total price: $${totalPrice}</strong><br>
+            <strong style="font-size: 1.2em;">Total points to spend: ${totalPoints}</strong><br>
+            <strong style="font-size: 1.2em;">Points to earn: ${pointsEarned}</strong>
+        `;
+    }
+
+    // Function to update the quantity of an item
+    const updateQuantity = (itemId, change) => {
+        console.log(`Updating quantity: itemId=${itemId}, change=${change}`);
+
+        fetch(`/api/cart/${itemId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ change })
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Error updating quantity:', response.statusText);
+            }
+            return response.json();
+        })
+        .then(() => {
+            loadCart();
+        })
+        .catch(error => console.error('Error updating quantity:', error));
+    };
+
+    // Function to remove an item from the cart
+    const removeFromCart = (itemId) => {
+        console.log(`Removing item: itemId=${itemId}`);
+
+        fetch(`/api/cart/${itemId}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error('Error removing item:', response.statusText);
+            }
+            return response.json();
+        })
+        .then(() => {
+            loadCart();
+        })
+        .catch(error => console.error('Error removing item:', error));
+    };
+
+    // Function to load cart items
+    const loadCart = () => {
+        fetch('/api/cart')
+            .then(response => response.json())
+            .then(data => {
+                renderCartItems(data.items);
+                renderCartTotals(data);
+                const cart = data.items;
+                let total = 0;
+
+                console.log('Backend response:', data);
+
+                // Add to total only if it's money
+                cart.forEach(item => {
+                    if (item.price !== null && item.price !== undefined) {
+                        total += item.price * item.quantity;
+                    }
+                });
+
+                // Remove the total and points to earn from the top part
+            })
+            .catch(error => console.error('Error loading cart:', error));
+    };
+
+    // Function to simulate payment and validate points
+    function proceedToCheckout() {
+        fetch('/api/cart/checkout', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert(data.message);
+                loadCart();
+            }
+        })
+        .catch(error => {
+            alert('Error processing payment.');
+            console.error(error);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCart();
+    });
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const signInButton = document.querySelector('.signin-btn');
+        const signOutButton = document.getElementById('signout-button');
+
+        // Check authentication status
+        fetch('/auth/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.isAuthenticated) {
+                    signInButton.style.display = 'none';
+                    signOutButton.style.display = 'inline-block';
+                } else {
+                    signInButton.style.display = 'inline-block';
+                    signOutButton.style.display = 'none';
+                }
+            })
+            .catch(error => console.error('Error checking authentication status:', error));
+
+        // Handle sign out
+        signOutButton.addEventListener('click', () => {
+            fetch('/auth/logout', { method: 'POST' })
+                .then(() => {
+                    window.location.reload();
+                })
+                .catch(error => console.error('Error signing out:', error));
+        });
+    });
+    </script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+
+        addToCartButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const itemId = button.getAttribute('data-item-id'); // Ensure this attribute is present in the HTML
+                const quantity = 1; // Default quantity
+
+                if (!itemId) {
+                    console.error('The data-item-id attribute is not defined on the button.');
+                    alert('Error: Could not identify the item.');
+                    return;
+                }
+
+                fetch('/api/cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id_objeto: itemId, quantity })
+                })
+                    .then(response => {
+                        if (response.status === 401) {
+                            alert('You must sign in to add items to the cart. You will be redirected to the login page.');
+                            window.location.href = '/signin.html';
+                        } else if (response.status === 400) {
+                            alert('Invalid request. Please check the data sent.');
+                        } else if (response.ok) {
+                            alert('Item added to cart.');
+                        } else {
+                            alert('Error adding item to cart.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error adding to cart:', error);
+                        alert('An unexpected error occurred. Please try again later.');
+                    });
+            });
+        });
+    });
+    </script>
+</body>
+</html>
