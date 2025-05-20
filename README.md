@@ -43,7 +43,7 @@ Burger Rush is a full-stack web application for managing a modern restaurant, in
 [https://github.com/RyogaAqua/Restaurante](https://github.com/RyogaAqua/Restaurante)
 
 ## Contributors
-- Megaroba / RyogaAqua
-- YadielTorres
-- OscarLopez
+- Megaroba / RyogaAqua (Emmanuel A. Arguelles Ocasio)
+- YadielTorres (Yadiel Torres Quiles)
+- OscarLopez (Oscar Lopez Natal)
 
