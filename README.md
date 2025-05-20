@@ -54,7 +54,7 @@ Restaurante/
 - Stripe (for payment simulation)
 
 ## Authors
-- Developed by emman (and contributors)
+- Developed by Megaroba, YadielTorres, OscarLopez2002
 
 ## License
 This project is for educational purposes.
